@@ -65,7 +65,7 @@ var pg = require('pg');
 				return callback(err);
 			}
 
-			client.query('SELECT t.id AS _tid, t.user_id AS _uid, t.category_id AS _cid, t.title AS _title, p.raw AS _content, t.created_at AS _timestamp, t.views AS _viewcount, CASE WHEN t.closed THEN 1 ELSE 0 END AS _locked, CASE WHEN t.deleted_at IS NULL THEN 0 ELSE 1 END AS _deleted, CASE WHEN t.pinned_at IS NULL THEN 0 ELSE 1 END AS _pinned FROM ' + _table_prefix + 'topics AS t INNER JOIN ' + _table_prefix + 'posts AS p ON p.topic_id = t.id AND p.post_number = 1 ORDER BY _tid ASC LIMIT $1::int OFFSET $2::int', [limit, start], function(err, result) {
+			client.query('SELECT t.id AS _tid, p.id AS _pid, t.user_id AS _uid, t.category_id AS _cid, t.title AS _title, p.raw AS _content, t.created_at AS _timestamp, t.views AS _viewcount, CASE WHEN t.closed THEN 1 ELSE 0 END AS _locked, CASE WHEN t.deleted_at IS NULL THEN 0 ELSE 1 END AS _deleted, CASE WHEN t.pinned_at IS NULL THEN 0 ELSE 1 END AS _pinned FROM ' + _table_prefix + 'topics AS t INNER JOIN ' + _table_prefix + 'posts AS p ON p.topic_id = t.id AND p.post_number = 1 WHERE t.archetype = \'regular\' ORDER BY _tid ASC LIMIT $1::int OFFSET $2::int', [limit, start], function(err, result) {
 				done(err);
 
 				if (err) {
@@ -80,6 +80,55 @@ var pg = require('pg');
 				});
 
 				callback(null, topics);
+			});
+		});
+	};
+
+	Exporter.getPaginatedPosts = function(start, limit, callback) {
+		pg.connect(_url, function(err, client, done) {
+			if (err) {
+				return callback(err);
+			}
+
+			client.query('SELECT p.id AS _pid, p.topic_id AS _tid, p.user_id AS _uid, p.raw AS _content, p.created_at AS _timestamp FROM ' + _table_prefix + 'posts AS p ORDER BY _pid ASC LIMIT $1::int OFFSET $2::int', [limit, start], function(err, result) {
+				done(err);
+
+				if (err) {
+					return callback(err);
+				}
+
+				var posts = {};
+
+				result.rows.forEach(function(row) {
+					row._timestamp = +row._timestamp;
+					posts[row._pid] = row;
+				});
+
+				callback(null, posts);
+			});
+		});
+	};
+
+	Exporter.getPaginatedVotes = function(start, limit, callback) {
+		pg.connect(_url, function(err, client, done) {
+			if (err) {
+				return callback(err);
+			}
+
+			client.query('SELECT a.id AS _vid, a.post_id AS _pid, p.topic_id AS _tid, a.user_id AS _uid FROM ' + _table_prefix + 'post_actions AS a INNER JOIN ' + _table_prefix + 'posts AS p ON a.post_id = p.id WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'like\') ORDER BY _pid ASC LIMIT $1::int OFFSET $2::int', [limit, start], function(err, result) {
+				done(err);
+
+				if (err) {
+					return callback(err);
+				}
+
+				var votes = {};
+
+				result.rows.forEach(function(row) {
+					votes[row._vid] = row;
+				});
+
+				callback(null, votes);
 			});
 		});
 	};

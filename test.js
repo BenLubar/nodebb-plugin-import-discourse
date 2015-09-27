@@ -69,6 +69,9 @@ async.series([
 		getAll('Posts', next);
 	},
 	function(next) {
+		getAll('Votes', next);
+	},
+	function(next) {
 		Exporter.teardown(next);
 	}
 ], function(err, results) {
@@ -77,4 +80,5 @@ async.series([
 	}
 
 	fs.writeFileSync('./results.json', JSON.stringify(results, undefined, '\t'));
+	process.exit(0);
 });
