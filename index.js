@@ -59,6 +59,31 @@ var pg = require('pg');
 		});
 	};
 
+	Exporter.getPaginatedTopics = function(start, limit, callback) {
+		pg.connect(_url, function(err, client, done) {
+			if (err) {
+				return callback(err);
+			}
+
+			client.query('SELECT t.id AS _tid, t.user_id AS _uid, t.category_id AS _cid, t.title AS _title, p.raw AS _content, t.created_at AS _timestamp, t.views AS _viewcount, CASE WHEN t.closed THEN 1 ELSE 0 END AS _locked, CASE WHEN t.deleted_at IS NULL THEN 0 ELSE 1 END AS _deleted, CASE WHEN t.pinned_at IS NULL THEN 0 ELSE 1 END AS _pinned FROM ' + _table_prefix + 'topics AS t INNER JOIN ' + _table_prefix + 'posts AS p ON p.topic_id = t.id AND p.post_number = 1 ORDER BY _tid ASC LIMIT $1::int OFFSET $2::int', [limit, start], function(err, result) {
+				done(err);
+
+				if (err) {
+					return callback(err);
+				}
+
+				var topics = {};
+
+				result.rows.forEach(function(row) {
+					row._timestamp = +row._timestamp;
+					topics[row._tid] = row;
+				});
+
+				callback(null, topics);
+			});
+		});
+	};
+
 	Exporter.teardown = function(callback) {
 		callback();
 	};
