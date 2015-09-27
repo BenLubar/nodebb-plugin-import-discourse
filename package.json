@@ -1,0 +1,30 @@
+{
+  "name": "nodebb-plugin-import-discourse",
+  "version": "0.0.0",
+  "description": "A module for nodebb-plugin-import that interfaces with Discourse",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BenLubar/nodebb-plugin-import-discourse"
+  },
+  "author": {
+    "name": "Ben Lubar",
+    "email": "ben.lubar@gmail.com"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/BenLubar/nodebb-plugin-import-discourse/issues"
+  },
+  "dependencies": {
+    "fs-extra": "~0.11.0",
+    "async": "~0.9.0",
+    "pg": "~4.4.2",
+    "nodebb-plugin-import": "~0.3.11"
+  },
+  "nbbpm": {
+    "compatibility": "0.6.1"
+  }
+}
