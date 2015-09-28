@@ -10,6 +10,7 @@ var pg = require('pg');
 		callback(null, config);
 	};
 
+	/*
 	Exporter.getPaginatedGroups = function(start, limit, callback) {
 		pg.connect(_url, function(err, client, done) {
 			if (err) {
@@ -42,6 +43,7 @@ var pg = require('pg');
 			});
 		});
 	};
+	*/
 
 	Exporter.getPaginatedUsers = function(start, limit, callback) {
 		pg.connect(_url, function(err, client, done) {
