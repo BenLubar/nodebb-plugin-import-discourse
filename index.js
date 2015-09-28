@@ -21,6 +21,7 @@ var pg = require('pg');
 				'g.name AS _name, ' +
 				'g.created_at AS _timestamp ' +
 				'FROM ' + _table_prefix + 'groups AS g ' +
+				'WHERE _gid >= 10 ' +
 				'ORDER BY _gid ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int', [limit, start], function(err, result) {
@@ -63,7 +64,7 @@ var pg = require('pg');
 					'WHEN u.moderator THEN \'moderator\' ' +
 					'ELSE \'\' ' +
 				'END AS _level, ' +
-				'ARRAY(SELECT g.group_id FROM ' + _table_prefix + 'group_users AS g WHERE g.user_id = u.id ORDER BY g.group_id ASC) AS _groups, ' +
+				'ARRAY(SELECT g.group_id FROM ' + _table_prefix + 'group_users AS g WHERE g.user_id = u.id AND g.group_id >= 10 ORDER BY g.group_id ASC) AS _groups, ' +
 				's.likes_received AS _reputation, ' +
 				'\'/users/\' || u.username_lower AS _path ' +
 				'FROM ' + _table_prefix + 'users AS u ' +
