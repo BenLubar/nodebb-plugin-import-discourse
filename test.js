@@ -57,6 +57,9 @@ async.series([
 		}, next);
 	},
 	function(next) {
+		getAll('Groups', next);
+	},
+	function(next) {
 		getAll('Users', next);
 	},
 	function(next) {

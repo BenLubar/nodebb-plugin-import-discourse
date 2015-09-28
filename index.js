@@ -10,6 +10,38 @@ var pg = require('pg');
 		callback(null, config);
 	};
 
+	Exporter.getPaginatedGroups = function(start, limit, callback) {
+		pg.connect(_url, function(err, client, done) {
+			if (err) {
+				return callback(err);
+			}
+
+			client.query('SELECT ' +
+				'g.id AS _gid, ' +
+				'g.name AS _name, ' +
+				'g.created_at AS _timestamp ' +
+				'FROM ' + _table_prefix + 'groups AS g ' +
+				'ORDER BY _gid ASC ' +
+				'LIMIT $1::int ' +
+				'OFFSET $2::int', [limit, start], function(err, result) {
+				done(err);
+
+				if (err) {
+					return callback(err);
+				}
+
+				var groups = {};
+
+				result.rows.forEach(function(row) {
+					row._timestamp = +row._timestamp;
+					groups[row._gid] = row;
+				});
+
+				callback(null, groups);
+			});
+		});
+	};
+
 	Exporter.getPaginatedUsers = function(start, limit, callback) {
 		pg.connect(_url, function(err, client, done) {
 			if (err) {
@@ -31,6 +63,7 @@ var pg = require('pg');
 					'WHEN u.moderator THEN \'moderator\' ' +
 					'ELSE \'\' ' +
 				'END AS _level, ' +
+				'ARRAY(SELECT g.group_id FROM ' + _table_prefix + 'group_users AS g WHERE g.user_id = u.id ORDER BY g.group_id ASC) AS _groups, ' +
 				's.likes_received AS _reputation, ' +
 				'\'/users/\' || u.username_lower AS _path ' +
 				'FROM ' + _table_prefix + 'users AS u ' +
