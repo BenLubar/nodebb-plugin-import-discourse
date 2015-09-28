@@ -153,7 +153,9 @@ var pg = require('pg');
 				'p.raw AS _content, ' +
 				'p.created_at AS _timestamp ' +
 				'FROM ' + _table_prefix + 'posts AS p ' +
-				'WHERE p.post_number <> 1 ' +
+				'LEFT JOIN ' + _table_prefix + 'topics AS t ' +
+				'ON p.topic_id = t.id ' +
+				'WHERE p.post_number <> 1 AND t.archetype = \'regular\' ' +
 				'ORDER BY _pid ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int', [limit, start], function(err, result) {
