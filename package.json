@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-import-discourse",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A module for nodebb-plugin-import that interfaces with Discourse",
   "main": "index.js",
   "scripts": {

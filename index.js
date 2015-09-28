@@ -90,7 +90,7 @@ var pg = require('pg');
 				return callback(err);
 			}
 
-			client.query('SELECT p.id AS _pid, p.topic_id AS _tid, p.user_id AS _uid, p.raw AS _content, p.created_at AS _timestamp FROM ' + _table_prefix + 'posts AS p ORDER BY _pid ASC LIMIT $1::int OFFSET $2::int', [limit, start], function(err, result) {
+			client.query('SELECT p.id AS _pid, p.topic_id AS _tid, p.user_id AS _uid, p.raw AS _content, p.created_at AS _timestamp FROM ' + _table_prefix + 'posts AS p WHERE p.post_number <> 1 ORDER BY _pid ASC LIMIT $1::int OFFSET $2::int', [limit, start], function(err, result) {
 				done(err);
 
 				if (err) {
