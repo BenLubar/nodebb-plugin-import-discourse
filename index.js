@@ -21,7 +21,7 @@ var pg = require('pg');
 				'g.name AS _name, ' +
 				'g.created_at AS _timestamp ' +
 				'FROM ' + _table_prefix + 'groups AS g ' +
-				'WHERE _gid >= 10 ' +
+				'WHERE g.id >= 10 ' +
 				'ORDER BY _gid ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int', [limit, start], function(err, result) {
