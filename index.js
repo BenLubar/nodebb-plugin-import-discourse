@@ -10,7 +10,6 @@ var pg = require('pg');
 		callback(null, config);
 	};
 
-	/*
 	Exporter.getPaginatedGroups = function(start, limit, callback) {
 		pg.connect(_url, function(err, client, done) {
 			if (err) {
@@ -43,7 +42,6 @@ var pg = require('pg');
 			});
 		});
 	};
-	*/
 
 	Exporter.getPaginatedUsers = function(start, limit, callback) {
 		pg.connect(_url, function(err, client, done) {
@@ -149,7 +147,10 @@ var pg = require('pg');
 				't.created_at AS _timestamp, ' +
 				't.views AS _viewcount, ' +
 				't.closed::int AS _locked, ' +
-				'(t.deleted_at IS NOT NULL)::int AS _deleted, ' +
+				'p.updated_at AS _edited, ' +
+				'p.deleted_at AS _deleted, ' +
+				'p.like_count AS _votes, ' +
+				'p.like_count AS _reputation, ' +
 				'(t.pinned_at IS NOT NULL)::int AS _pinned ' +
 				'FROM ' + _table_prefix + 'topics AS t ' +
 				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
@@ -168,6 +169,8 @@ var pg = require('pg');
 
 				result.rows.forEach(function(row) {
 					row._timestamp = +row._timestamp;
+					row._edited = +row._edited;
+					row._deleted = +row._deleted;
 					topics[row._tid] = row;
 				});
 
@@ -187,7 +190,11 @@ var pg = require('pg');
 				'p.topic_id AS _tid, ' +
 				'p.user_id AS _uid, ' +
 				'p.raw AS _content, ' +
-				'p.created_at AS _timestamp ' +
+				'p.created_at AS _timestamp, ' +
+				'p.updated_at AS _edited, ' +
+				'p.deleted_at AS _deleted, ' +
+				'p.like_count AS _votes, ' +
+				'p.like_count AS _reputation ' +
 				'FROM ' + _table_prefix + 'posts AS p ' +
 				'LEFT JOIN ' + _table_prefix + 'topics AS t ' +
 				'ON p.topic_id = t.id ' +
@@ -205,6 +212,8 @@ var pg = require('pg');
 
 				result.rows.forEach(function(row) {
 					row._timestamp = +row._timestamp;
+					row._edited = +row._edited;
+					row._deleted = +row._deleted;
 					posts[row._pid] = row;
 				});
 
