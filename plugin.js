@@ -13,4 +13,4 @@
 			res.redirect(301, nconf.get('url') + '/topic/' + id + '/' + req.params.title + (req.params.post_index ? '/' + req.params.post_index : ''));
 		});
 	};
-}(module.exports);
+})(module.exports);
