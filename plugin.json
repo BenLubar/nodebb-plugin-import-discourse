@@ -3,5 +3,8 @@
 	"name":        "Import Discourse",
 	"description": "A module for nodebb-plugin-import that interfaces with Discourse",
 	"url":         "https://github.com/BenLubar/nodebb-plugin-import-discourse",
-	"library":     "./index.js"
+	"library":     "./plugin.js"
+	"hooks": [
+		{"hook": "static:app.load", "method": "load"}
+	],
 }
