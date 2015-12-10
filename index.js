@@ -113,9 +113,8 @@ var pg = require('pg');
 				'ON u.id = p.user_id ' +
 				'LEFT JOIN ' + _table_prefix + 'user_stats AS s ' +
 				'ON u.id = s.user_id ' +
-				'WHERE true ' +
-				("user_id_greater" in _config ? 'AND u.id > $3::int ' : '') +
-				("user_created_after" in _config ? 'AND u.created_at > $4::datetime ' : '') +
+				'WHERE ($3 IS NULL OR u.id > $3::int) ' +
+				'AND ($4 IS NULL OR u.created_at > $4::datetime) ' +
 				("user_where" in _config ? 'AND (' + _config["user_where"] + ') ' : '') +
 				'ORDER BY _uid ASC ' +
 				'LIMIT $1::int ' +
@@ -201,8 +200,8 @@ var pg = require('pg');
 				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
 				'ON p.topic_id = t.id AND p.post_number = 1 ' +
 				'WHERE t.archetype = \'regular\' ' +
-				("topic_id_greater" in _config ? 'AND t.id > $3::int ' : '') +
-				("topic_created_after" in _config ? 'AND t.created_at > $4::datetime ' : '') +
+				'AND ($3 IS NULL OR t.id > $3::int) ' +
+				'AND ($4 IS NULL OR t.created_at > $4::datetime) ' +
 				("topic_where" in _config ? 'AND (' + _config["topic_where"] + ') ' : '') +
 				'ORDER BY _tid ASC ' +
 				'LIMIT $1::int ' +
@@ -247,8 +246,8 @@ var pg = require('pg');
 				'LEFT JOIN ' + _table_prefix + 'topics AS t ' +
 				'ON p.topic_id = t.id ' +
 				'WHERE p.post_number <> 1 AND t.archetype = \'regular\' ' +
-				("post_id_greater" in _config ? 'AND p.id > $3::int ' : '') +
-				("post_created_after" in _config ? 'AND p.created_at > $4::datetime ' : '') +
+				'AND ($3 IS NULL OR p.id > $3::int) ' +
+				'AND ($4 IS NULL OR p.created_at > $4::datetime) ' +
 				("post_where" in _config ? 'AND (' + _config["post_where"] + ') ' : '') +
 				'ORDER BY _pid ASC ' +
 				'LIMIT $1::int ' +
@@ -289,8 +288,8 @@ var pg = require('pg');
 				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
 				'ON a.post_id = p.id ' +
 				'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'like\') ' +
-				("vote_id_greater" in _config ? 'AND a.id > $3::int ' : '') +
-				("vote_created_after" in _config ? 'AND a.created_at > $4::datetime ' : '') +
+				'AND ($3 IS NULL OR a.id > $3::int) ' +
+				'AND ($4 IS NULL OR a.created_at > $4::datetime) ' +
 				("vote_where" in _config ? 'AND (' + _config["vote_where"] + ') ' : '') +
 				'ORDER BY _vid ASC ' +
 				'LIMIT $1::int ' +
@@ -328,8 +327,8 @@ var pg = require('pg');
 				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
 				'ON a.post_id = p.id ' +
 				'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'bookmark\') ' +
-				("bookmark_id_greater" in _config ? 'AND a.id > $3::int ' : '') +
-				("bookmark_created_after" in _config ? 'AND a.created_at > $4::datetime ' : '') +
+				'AND ($3 IS NULL OR a.id > $3::int) ' +
+				'AND ($4 IS NULL OR a.created_at > $4::datetime) ' +
 				("bookmark_where" in _config ? 'AND (' + _config["bookmark_where"] + ') ' : '') +
 				'ORDER BY _bid ASC ' +
 				'LIMIT $1::int ' +
