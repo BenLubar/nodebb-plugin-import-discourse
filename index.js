@@ -232,7 +232,8 @@ var pg = require('pg');
 				'a.id AS _vid, ' +
 				'a.post_id AS _pid, ' +
 				'p.topic_id AS _tid, ' +
-				'a.user_id AS _uid ' +
+				'a.user_id AS _uid, ' +
+				'1 as _action ' +
 				'FROM ' + _table_prefix + 'post_actions AS a ' +
 				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
 				'ON a.post_id = p.id ' +
@@ -253,6 +254,42 @@ var pg = require('pg');
 				});
 
 				callback(null, votes);
+			});
+		});
+	};
+
+	Exporter.getPaginatedBookmarks = function(start, limit, callback) {
+		pg.connect(_url, function(err, client, done) {
+			if (err) {
+				return callback(err);
+			}
+
+			client.query('SELECT ' +
+				'a.id AS _bid, ' +
+				'a.post_id AS _pid, ' +
+				'p.topic_id AS _tid, ' +
+				'a.user_id AS _uid, ' +
+				'p.post_number - 1 AS _index ' +
+				'FROM ' + _table_prefix + 'post_actions AS a ' +
+				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
+				'ON a.post_id = p.id ' +
+				'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'bookmark\') ' +
+				'ORDER BY _vid ASC ' +
+				'LIMIT $1::int ' +
+				'OFFSET $2::int', [limit, start], function(err, result) {
+				done(err);
+
+				if (err) {
+					return callback(err);
+				}
+
+				var bookmarks = {};
+
+				result.rows.forEach(function(row) {
+					bookmarks[row._bid] = row;
+				});
+
+				callback(null, bookmarks);
 			});
 		});
 	};
