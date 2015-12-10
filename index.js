@@ -113,7 +113,7 @@ var pg = require('pg');
 				'ON u.id = p.user_id ' +
 				'LEFT JOIN ' + _table_prefix + 'user_stats AS s ' +
 				'ON u.id = s.user_id ' +
-				'WHERE 1 ' +
+				'WHERE true ' +
 				("user_id_greater" in _config ? 'AND u.id > $3::int ' : '') +
 				("user_created_after" in _config ? 'AND u.created_at > $4::datetime ' : '') +
 				("user_where" in _config ? 'AND (' + _config["user_where"] + ') ' : '') +
