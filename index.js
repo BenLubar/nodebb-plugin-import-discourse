@@ -57,7 +57,8 @@ var pg = require('pg');
 				return callback(err);
 			}
 
-			client.query('SELECT ' +
+			client.query({
+				text: 'SELECT ' +
 				'g.id AS _gid, ' +
 				'g.name AS _name, ' +
 				'g.created_at AS _timestamp ' +
@@ -65,7 +66,9 @@ var pg = require('pg');
 				'WHERE g.id >= 10 ' +
 				'ORDER BY _gid ASC ' +
 				'LIMIT $1::int ' +
-				'OFFSET $2::int', [limit, start], function(err, result) {
+				'OFFSET $2::int',
+				types: ["int", "int"]
+			}, [limit, start], function(err, result) {
 				done(err);
 
 				if (err) {
@@ -90,7 +93,8 @@ var pg = require('pg');
 				return callback(err);
 			}
 
-			client.query('SELECT ' +
+			client.query({
+				text: 'SELECT ' +
 				'u.id AS _uid, ' +
 				'u.email AS _email, ' +
 				'u.username AS _username, ' +
@@ -118,7 +122,9 @@ var pg = require('pg');
 				("user_where" in _config ? 'AND (' + _config["user_where"] + ') ' : '') +
 				'ORDER BY _uid ASC ' +
 				'LIMIT $1::int ' +
-				'OFFSET $2::int', [limit, start, _config["user_id_greater"], _config["user_created_after"]], function(err, result) {
+				'OFFSET $2::int',
+				types: ["int", "int", "int", "timestamp"]
+			}, [limit, start, _config["user_id_greater"], _config["user_created_after"]], function(err, result) {
 				done(err);
 
 				if (err) {
@@ -143,7 +149,8 @@ var pg = require('pg');
 				return callback(err);
 			}
 
-			client.query('SELECT ' +
+			client.query({
+				text: 'SELECT ' +
 				'c.id AS _cid, ' +
 				'c.name AS _name, ' +
 				'c.description AS _description, ' +
@@ -157,7 +164,9 @@ var pg = require('pg');
 				'FROM ' + _table_prefix + 'categories AS c ' +
 				'ORDER BY _cid ASC ' +
 				'LIMIT $1::int ' +
-				'OFFSET $2::int', [limit, start], function(err, result) {
+				'OFFSET $2::int',
+				types: ["int", "int"]
+			}, [limit, start], function(err, result) {
 				done(err);
 
 				if (err) {
@@ -181,7 +190,8 @@ var pg = require('pg');
 				return callback(err);
 			}
 
-			client.query('SELECT ' +
+			client.query({
+				text: 'SELECT ' +
 				't.id AS _tid, ' +
 				'p.id AS _pid, ' +
 				't.user_id AS _uid, ' +
@@ -205,7 +215,9 @@ var pg = require('pg');
 				("topic_where" in _config ? 'AND (' + _config["topic_where"] + ') ' : '') +
 				'ORDER BY _tid ASC ' +
 				'LIMIT $1::int ' +
-				'OFFSET $2::int', [limit, start, _config["topic_id_greater"], _config["topic_created_after"]], function(err, result) {
+				'OFFSET $2::int',
+				types: ["int", "int", "int", "timestamp"]
+			}, [limit, start, _config["topic_id_greater"], _config["topic_created_after"]], function(err, result) {
 				done(err);
 
 				if (err) {
@@ -232,7 +244,8 @@ var pg = require('pg');
 				return callback(err);
 			}
 
-			client.query('SELECT ' +
+			client.query({
+				text: 'SELECT ' +
 				'p.id AS _pid, ' +
 				'p.topic_id AS _tid, ' +
 				'p.user_id AS _uid, ' +
@@ -251,7 +264,9 @@ var pg = require('pg');
 				("post_where" in _config ? 'AND (' + _config["post_where"] + ') ' : '') +
 				'ORDER BY _pid ASC ' +
 				'LIMIT $1::int ' +
-				'OFFSET $2::int', [limit, start, _config["post_id_greater"], _config["post_created_after"]], function(err, result) {
+				'OFFSET $2::int',
+				types: ["int", "int", "int", "timestamp"]
+			}, [limit, start, _config["post_id_greater"], _config["post_created_after"]], function(err, result) {
 				done(err);
 
 				if (err) {
@@ -278,7 +293,8 @@ var pg = require('pg');
 				return callback(err);
 			}
 
-			client.query('SELECT ' +
+			client.query({
+				text: 'SELECT ' +
 				'a.id AS _vid, ' +
 				'a.post_id AS _pid, ' +
 				'p.topic_id AS _tid, ' +
@@ -293,7 +309,9 @@ var pg = require('pg');
 				("vote_where" in _config ? 'AND (' + _config["vote_where"] + ') ' : '') +
 				'ORDER BY _vid ASC ' +
 				'LIMIT $1::int ' +
-				'OFFSET $2::int', [limit, start, _config["vote_id_greater"], _config["vote_created_after"]], function(err, result) {
+				'OFFSET $2::int',
+				types: ["int", "int", "int", "timestamp"]
+			}, [limit, start, _config["vote_id_greater"], _config["vote_created_after"]], function(err, result) {
 				done(err);
 
 				if (err) {
@@ -317,7 +335,8 @@ var pg = require('pg');
 				return callback(err);
 			}
 
-			client.query('SELECT ' +
+			client.query({
+				text: 'SELECT ' +
 				'a.id AS _bid, ' +
 				'a.post_id AS _pid, ' +
 				'p.topic_id AS _tid, ' +
@@ -332,7 +351,9 @@ var pg = require('pg');
 				("bookmark_where" in _config ? 'AND (' + _config["bookmark_where"] + ') ' : '') +
 				'ORDER BY _bid ASC ' +
 				'LIMIT $1::int ' +
-				'OFFSET $2::int', [limit, start, _config["bookmark_id_greater"], _config["bookmark_created_after"]], function(err, result) {
+				'OFFSET $2::int',
+				types: ["int", "int", "int", "timestamp"]
+			}, [limit, start, _config["bookmark_id_greater"], _config["bookmark_created_after"]], function(err, result) {
 				done(err);
 
 				if (err) {
