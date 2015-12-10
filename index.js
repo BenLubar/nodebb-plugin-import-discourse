@@ -4,9 +4,50 @@ var pg = require('pg');
 (function(Exporter) {
 	var _table_prefix;
 	var _url;
+	var _config;
+
+	var allowed_keys = {
+		"user_id_greater": function(x) { return parseInt(x, 10); },
+		"user_created_after": function(x) { return new Date(x); },
+		"user_where": function(x) { return String(x); },
+		"topic_id_greater": function(x) { return parseInt(x, 10); },
+		"topic_created_after": function(x) { return new Date(x); },
+		"topic_where": function(x) { return String(x); },
+		"post_id_greater": function(x) { return parseInt(x, 10); },
+		"post_created_after": function(x) { return new Date(x); },
+		"post_where": function(x) { return String(x); },
+		"vote_id_greater": function(x) { return parseInt(x, 10); },
+		"vote_created_after": function(x) { return new Date(x); },
+		"vote_where": function(x) { return String(x); },
+		"bookmark_id_greater": function(x) { return parseInt(x, 10); },
+		"bookmark_created_after": function(x) { return new Date(x); },
+		"bookmark_where": function(x) { return String(x); },
+	};
+
 	Exporter.setup = function(config, callback) {
 		_table_prefix = config.tablePrefix;
 		_url = "postgres://" + encodeURIComponent(config.dbuser) + ":" + encodeURIComponent(config.dbpass) + "@" + encodeURIComponent(config.dbhost) + ":" + config.dbport + "/" + encodeURIComponent(config.dbname);
+
+		_config = {};
+		if (!Object.keys(config.custom).every(function(key) {
+			if (key in allowed_keys) {
+				try {
+					_config[key] = allowed_keys[key](config.custom[key]);
+					if (_config[key] != _config[key]) {
+						throw "not a number";
+					}
+					return true;
+				} catch (e) {
+					callback("Error in key " + key + ": " + e);
+					return false;
+				}
+			}
+			callback("Illegal custom key: " + key);
+			return false;
+		})) {
+			return;
+		}
+
 		callback(null, config);
 	};
 
@@ -72,9 +113,13 @@ var pg = require('pg');
 				'ON u.id = p.user_id ' +
 				'LEFT JOIN ' + _table_prefix + 'user_stats AS s ' +
 				'ON u.id = s.user_id ' +
+				'WHERE 1 ' +
+				("user_id_greater" in _config ? 'AND u.id > $3::int ' : '') +
+				("user_created_after" in _config ? 'AND u.created_at > $4::datetime ' : '') +
+				("user_where" in _config ? 'AND (' + _config["user_where"] + ') ' : '') +
 				'ORDER BY _uid ASC ' +
 				'LIMIT $1::int ' +
-				'OFFSET $2::int', [limit, start], function(err, result) {
+				'OFFSET $2::int', [limit, start, _config["user_id_greater"], _config["user_created_after"]], function(err, result) {
 				done(err);
 
 				if (err) {
@@ -156,9 +201,12 @@ var pg = require('pg');
 				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
 				'ON p.topic_id = t.id AND p.post_number = 1 ' +
 				'WHERE t.archetype = \'regular\' ' +
+				("topic_id_greater" in _config ? 'AND t.id > $3::int ' : '') +
+				("topic_created_after" in _config ? 'AND t.created_at > $4::datetime ' : '') +
+				("topic_where" in _config ? 'AND (' + _config["topic_where"] + ') ' : '') +
 				'ORDER BY _tid ASC ' +
 				'LIMIT $1::int ' +
-				'OFFSET $2::int', [limit, start], function(err, result) {
+				'OFFSET $2::int', [limit, start, _config["topic_id_greater"], _config["topic_created_after"]], function(err, result) {
 				done(err);
 
 				if (err) {
@@ -199,9 +247,12 @@ var pg = require('pg');
 				'LEFT JOIN ' + _table_prefix + 'topics AS t ' +
 				'ON p.topic_id = t.id ' +
 				'WHERE p.post_number <> 1 AND t.archetype = \'regular\' ' +
+				("post_id_greater" in _config ? 'AND p.id > $3::int ' : '') +
+				("post_created_after" in _config ? 'AND p.created_at > $4::datetime ' : '') +
+				("post_where" in _config ? 'AND (' + _config["post_where"] + ') ' : '') +
 				'ORDER BY _pid ASC ' +
 				'LIMIT $1::int ' +
-				'OFFSET $2::int', [limit, start], function(err, result) {
+				'OFFSET $2::int', [limit, start, _config["post_id_greater"], _config["post_created_after"]], function(err, result) {
 				done(err);
 
 				if (err) {
@@ -238,9 +289,12 @@ var pg = require('pg');
 				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
 				'ON a.post_id = p.id ' +
 				'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'like\') ' +
+				("vote_id_greater" in _config ? 'AND a.id > $3::int ' : '') +
+				("vote_created_after" in _config ? 'AND a.created_at > $4::datetime ' : '') +
+				("vote_where" in _config ? 'AND (' + _config["vote_where"] + ') ' : '') +
 				'ORDER BY _vid ASC ' +
 				'LIMIT $1::int ' +
-				'OFFSET $2::int', [limit, start], function(err, result) {
+				'OFFSET $2::int', [limit, start, _config["vote_id_greater"], _config["vote_created_after"]], function(err, result) {
 				done(err);
 
 				if (err) {
@@ -274,9 +328,12 @@ var pg = require('pg');
 				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
 				'ON a.post_id = p.id ' +
 				'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'bookmark\') ' +
-				'ORDER BY _vid ASC ' +
+				("bookmark_id_greater" in _config ? 'AND a.id > $3::int ' : '') +
+				("bookmark_created_after" in _config ? 'AND a.created_at > $4::datetime ' : '') +
+				("bookmark_where" in _config ? 'AND (' + _config["bookmark_where"] + ') ' : '') +
+				'ORDER BY _bid ASC ' +
 				'LIMIT $1::int ' +
-				'OFFSET $2::int', [limit, start], function(err, result) {
+				'OFFSET $2::int', [limit, start, _config["bookmark_id_greater"], _config["bookmark_created_after"]], function(err, result) {
 				done(err);
 
 				if (err) {
