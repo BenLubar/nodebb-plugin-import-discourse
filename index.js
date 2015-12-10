@@ -114,7 +114,7 @@ var pg = require('pg');
 				'LEFT JOIN ' + _table_prefix + 'user_stats AS s ' +
 				'ON u.id = s.user_id ' +
 				'WHERE ($3 IS NULL OR u.id > $3::int) ' +
-				'AND ($4 IS NULL OR u.created_at > $4::datetime) ' +
+				'AND ($4 IS NULL OR u.created_at > $4::timestamp) ' +
 				("user_where" in _config ? 'AND (' + _config["user_where"] + ') ' : '') +
 				'ORDER BY _uid ASC ' +
 				'LIMIT $1::int ' +
@@ -201,7 +201,7 @@ var pg = require('pg');
 				'ON p.topic_id = t.id AND p.post_number = 1 ' +
 				'WHERE t.archetype = \'regular\' ' +
 				'AND ($3 IS NULL OR t.id > $3::int) ' +
-				'AND ($4 IS NULL OR t.created_at > $4::datetime) ' +
+				'AND ($4 IS NULL OR t.created_at > $4::timestamp) ' +
 				("topic_where" in _config ? 'AND (' + _config["topic_where"] + ') ' : '') +
 				'ORDER BY _tid ASC ' +
 				'LIMIT $1::int ' +
@@ -247,7 +247,7 @@ var pg = require('pg');
 				'ON p.topic_id = t.id ' +
 				'WHERE p.post_number <> 1 AND t.archetype = \'regular\' ' +
 				'AND ($3 IS NULL OR p.id > $3::int) ' +
-				'AND ($4 IS NULL OR p.created_at > $4::datetime) ' +
+				'AND ($4 IS NULL OR p.created_at > $4::timestamp) ' +
 				("post_where" in _config ? 'AND (' + _config["post_where"] + ') ' : '') +
 				'ORDER BY _pid ASC ' +
 				'LIMIT $1::int ' +
@@ -289,7 +289,7 @@ var pg = require('pg');
 				'ON a.post_id = p.id ' +
 				'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'like\') ' +
 				'AND ($3 IS NULL OR a.id > $3::int) ' +
-				'AND ($4 IS NULL OR a.created_at > $4::datetime) ' +
+				'AND ($4 IS NULL OR a.created_at > $4::timestamp) ' +
 				("vote_where" in _config ? 'AND (' + _config["vote_where"] + ') ' : '') +
 				'ORDER BY _vid ASC ' +
 				'LIMIT $1::int ' +
@@ -328,7 +328,7 @@ var pg = require('pg');
 				'ON a.post_id = p.id ' +
 				'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'bookmark\') ' +
 				'AND ($3 IS NULL OR a.id > $3::int) ' +
-				'AND ($4 IS NULL OR a.created_at > $4::datetime) ' +
+				'AND ($4 IS NULL OR a.created_at > $4::timestamp) ' +
 				("bookmark_where" in _config ? 'AND (' + _config["bookmark_where"] + ') ' : '') +
 				'ORDER BY _bid ASC ' +
 				'LIMIT $1::int ' +
