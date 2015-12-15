@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-import-discourse",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "A module for nodebb-plugin-import that interfaces with Discourse",
   "main": "index.js",
   "scripts": {
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "async": "^0.9.2",
-    "nodebb-plugin-import": "^0.3.16",
+    "nodebb-plugin-import": "^0.3.23",
     "pg": "~4.4.2"
   },
   "devDependencies": {
