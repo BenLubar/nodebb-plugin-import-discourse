@@ -253,10 +253,14 @@ var pg = require('pg');
 				'p.updated_at AS _edited, ' +
 				'CASE WHEN p.deleted_at IS NULL 0 ELSE 1 END AS _deleted, ' +
 				'p.like_count AS _votes, ' +
-				'p.like_count AS _reputation ' +
+				'p.like_count AS _reputation, ' +
+				'r.id AS _toPid ' +
 				'FROM ' + _table_prefix + 'posts AS p ' +
 				'LEFT JOIN ' + _table_prefix + 'topics AS t ' +
 				'ON p.topic_id = t.id ' +
+				'LEFT OUTER JOIN ' + _table_prefix + 'posts AS r ' +
+				'ON p.topic_id = r.topic_id ' +
+				'AND p.reply_to_post_number = r.post_number ' +
 				'WHERE p.post_number <> 1 AND t.archetype = \'regular\' ' +
 				'AND p.id > $3::int ' +
 				'AND p.created_at > $4::timestamp ' +
