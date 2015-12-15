@@ -202,7 +202,7 @@ var pg = require('pg');
 				't.views AS _viewcount, ' +
 				't.closed::int AS _locked, ' +
 				'p.updated_at AS _edited, ' +
-				'CASE WHEN p.deleted_at IS NULL 0 ELSE 1 END AS _deleted, ' +
+				'CASE WHEN p.deleted_at IS NULL THEN 0 ELSE 1 END AS _deleted, ' +
 				'p.like_count AS _votes, ' +
 				'p.like_count AS _reputation, ' +
 				'(t.pinned_at IS NOT NULL)::int AS _pinned ' +
@@ -251,7 +251,7 @@ var pg = require('pg');
 				'p.raw AS _content, ' +
 				'p.created_at AS _timestamp, ' +
 				'p.updated_at AS _edited, ' +
-				'CASE WHEN p.deleted_at IS NULL 0 ELSE 1 END AS _deleted, ' +
+				'CASE WHEN p.deleted_at IS NULL THEN 0 ELSE 1 END AS _deleted, ' +
 				'p.like_count AS _votes, ' +
 				'p.like_count AS _reputation, ' +
 				'r.id AS _toPid ' +
