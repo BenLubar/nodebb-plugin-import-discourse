@@ -296,6 +296,7 @@ var pg = require('pg');
 				'a.id AS _vid, ' +
 				'a.post_id AS _pid, ' +
 				'p.topic_id AS _tid, ' +
+				'p.post_number AS _pn, ' +
 				'a.user_id AS _uid, ' +
 				'1 as _action ' +
 				'FROM ' + _table_prefix + 'post_actions AS a ' +
@@ -319,6 +320,12 @@ var pg = require('pg');
 				var votes = {};
 
 				result.rows.forEach(function(row) {
+					if (row._pn == 1) {
+						delete row._pid;
+					} else {
+						delete row._tid;
+					}
+					delete row._pn;
 					votes[row._vid] = row;
 				});
 
