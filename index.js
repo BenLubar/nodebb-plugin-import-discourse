@@ -110,13 +110,19 @@ var pg = require('pg');
 					'ELSE \'\' ' +
 				'END AS _level, ' +
 				'ARRAY(SELECT g.group_id FROM ' + _table_prefix + 'group_users AS g WHERE g.user_id = u.id AND g.group_id >= 10 ORDER BY g.group_id ASC) AS _groups, ' +
-				's.likes_received AS _reputation, ' +
-				'\'/users/\' || u.username_lower AS _path ' +
+				'\'/users/\' || u.username_lower AS _path, ' +
+				'u.last_posted_at AS _lastposttime, ' +
+				'u.last_seen_at AS _lastonline, ' +
+				'f.url AS _picture ' +
 				'FROM ' + _table_prefix + 'users AS u ' +
 				'LEFT JOIN ' + _table_prefix + 'user_profiles AS p ' +
 				'ON u.id = p.user_id ' +
 				'LEFT JOIN ' + _table_prefix + 'user_stats AS s ' +
 				'ON u.id = s.user_id ' +
+				'LEFT JOIN ' + _table_prefix + 'user_avatars AS a ' +
+				'ON u.id = a.user_id ' +
+				'LEFT JOIN ' + _table_prefix + 'uploads AS f ' +
+				'ON f.id = COALESCE(a.custom_upload_id, a.gravatar_upload_id) ' +
 				'WHERE u.id > $3::int ' +
 				'AND u.created_at > $4::timestamp ' +
 				("user_where" in _config ? 'AND (' + _config["user_where"] + ') ' : '') +
@@ -135,6 +141,8 @@ var pg = require('pg');
 
 				result.rows.forEach(function(row) {
 					row._joindate = +row._joindate;
+					row._lastposttime = +row._lastposttime;
+					row._lastonline = +row._lastonline;
 					users[row._uid] = row;
 				});
 
@@ -160,7 +168,9 @@ var pg = require('pg');
 				'\'/c/\' || CASE ' +
 					'WHEN c.parent_category_id IS NULL THEN \'\' ' +
 					'ELSE (SELECT p.slug FROM ' + _table_prefix + 'categories AS p WHERE p.id = c.parent_category_id) || \'/\' ' +
-				'END || c.slug AS _path ' +
+				'END || c.slug AS _path, ' +
+				'c.text_color AS _color, ' +
+				'c.color AS _bgColor ' +
 				'FROM ' + _table_prefix + 'categories AS c ' +
 				'ORDER BY _cid ASC ' +
 				'LIMIT $1::int ' +
@@ -203,8 +213,6 @@ var pg = require('pg');
 				't.closed::int AS _locked, ' +
 				'p.updated_at AS _edited, ' +
 				'CASE WHEN p.deleted_at IS NULL THEN 0 ELSE 1 END AS _deleted, ' +
-				'p.like_count AS _votes, ' +
-				'p.like_count AS _reputation, ' +
 				'(t.pinned_at IS NOT NULL)::int AS _pinned ' +
 				'FROM ' + _table_prefix + 'topics AS t ' +
 				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
@@ -252,8 +260,6 @@ var pg = require('pg');
 				'p.created_at AS _timestamp, ' +
 				'p.updated_at AS _edited, ' +
 				'CASE WHEN p.deleted_at IS NULL THEN 0 ELSE 1 END AS _deleted, ' +
-				'p.like_count AS _votes, ' +
-				'p.like_count AS _reputation, ' +
 				'r.id AS _toPid ' +
 				'FROM ' + _table_prefix + 'posts AS p ' +
 				'LEFT JOIN ' + _table_prefix + 'topics AS t ' +
