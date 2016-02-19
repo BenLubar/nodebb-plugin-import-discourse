@@ -164,13 +164,13 @@ var pg = require('pg');
 				'c.description AS _description, ' +
 				'c."position" AS _order, ' +
 				'c.slug AS _slug, ' +
-				'c.parent_category_id AS _parentCid, ' +
+				'c.parent_category_id AS "_parentCid", ' +
 				'\'/c/\' || CASE ' +
 					'WHEN c.parent_category_id IS NULL THEN \'\' ' +
 					'ELSE (SELECT p.slug FROM ' + _table_prefix + 'categories AS p WHERE p.id = c.parent_category_id) || \'/\' ' +
 				'END || c.slug AS _path, ' +
-				'c.text_color AS _color, ' +
-				'c.color AS _bgColor ' +
+				'\'#\' || c.text_color AS _color, ' +
+				'\'#\' || c.color AS "_bgColor" ' +
 				'FROM ' + _table_prefix + 'categories AS c ' +
 				'ORDER BY _cid ASC ' +
 				'LIMIT $1::int ' +
@@ -260,7 +260,7 @@ var pg = require('pg');
 				'p.created_at AS _timestamp, ' +
 				'p.updated_at AS _edited, ' +
 				'CASE WHEN p.deleted_at IS NULL THEN 0 ELSE 1 END AS _deleted, ' +
-				'r.id AS _toPid ' +
+				'r.id AS "_toPid" ' +
 				'FROM ' + _table_prefix + 'posts AS p ' +
 				'LEFT JOIN ' + _table_prefix + 'topics AS t ' +
 				'ON p.topic_id = t.id ' +
