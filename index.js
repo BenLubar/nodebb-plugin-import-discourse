@@ -1,12 +1,15 @@
 var async = require('async');
 var pg = require('pg');
+var mssql = require('mssql');
 
 (function(Exporter) {
 	var _table_prefix;
 	var _url;
+	var _cs;
 	var _config;
 
 	var allowed_keys = {
+		"cs": function(x) { return x; },
 		"user_id_greater": function(x) { return parseInt(x, 10); },
 		"user_created_after": function(x) { return new Date(x); },
 		"user_where": function(x) { return String(x); },
@@ -46,6 +49,11 @@ var pg = require('pg');
 			return false;
 		})) {
 			return;
+		}
+
+		_cs = _config.cs;
+		if (!_cs) {
+			return callback("Need {\"cs\":\"community server connection string\"} in custom field");
 		}
 
 		callback(null, config);
@@ -159,15 +167,12 @@ var pg = require('pg');
 
 			client.query({
 				text: 'SELECT ' +
-				'c.id * 2 + 1 AS _cid, ' +
+				'c.id AS _cid, ' +
 				'c.name AS _name, ' +
 				'c.description AS _description, ' +
 				'c."position" AS _order, ' +
 				'c.slug AS _slug, ' +
-				'COALESCE((SELECT p.value::int * 2 ' +
-					'FROM ' + _table_prefix + 'category_custom_fields AS p ' +
-					'WHERE p.name = \'import_id\' AND p.category_id = c.parent_category_id), ' +
-				'c.parent_category_id * 2 + 1) AS "_parentCid", ' +
+				'c.parent_category_id AS "_parentCid", ' +
 				'\'/c/\' || CASE ' +
 					'WHEN c.parent_category_id IS NULL THEN \'\' ' +
 					'ELSE (SELECT p.slug FROM ' + _table_prefix + 'categories AS p WHERE p.id = c.parent_category_id) || \'/\' ' +
@@ -213,10 +218,7 @@ var pg = require('pg');
 				't.id * 2 + 1 AS _tid, ' +
 				'p.id * 2 + 1 AS _pid, ' +
 				't.user_id AS _uid, ' +
-				'COALESCE((SELECT c.value::int * 2 ' +
-					'FROM ' + _table_prefix + 'category_custom_fields AS c ' +
-					'WHERE c.name = \'import_id\' AND c.category_id = t.category_id), ' +
-				't.category_id * 2 + 1) AS _cid, ' +
+				't.category_id AS _cid, ' +
 				't.title AS _title, ' +
 				'p.raw AS _content, ' +
 				't.created_at AS _timestamp, ' +
