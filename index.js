@@ -75,52 +75,61 @@ var mssql = require('mssql');
 	function getImportedIDs(config, callback) {
 		_imported = {c: {}, u: {}, topics_offset: -1, posts_offset: -1};
 
-		pg.connect(_url, function(err, client, done) {
+		new mssql.Request().query('SELECT u.Email AS k, u.UserID AS v FROM dbo.cs_Users AS u', function(err, rows) {
 			if (err) {
 				return callback(err);
 			}
 
-			client.query({
-				text: 'SELECT ' +
-				'f.value::int AS k, ' +
-				'f.user_id AS v ' +
-				'FROM ' + _table_prefix + 'user_custom_fields AS f ' +
-				'WHERE f.name = \'import_id\''
-			}, [], function(err, result) {
-				done(err);
+			var user_emails = {};
+			rows.forEach(function(row) {
+				user_emails[row.k] = row.v;
+			});
 
+			pg.connect(_url, function(err, client, done) {
 				if (err) {
 					return callback(err);
 				}
 
-				result.rows.forEach(function(row) {
-					_imported.u[row.k] = row.v;
-				});
+				client.query({
+					text: 'SELECT u.email AS k, u.id AS v FROM ' + _table_prefix + 'users AS u'
+				}, [], function(err, result) {
+					done(err);
 
-
-				pg.connect(_url, function(err, client, done) {
 					if (err) {
 						return callback(err);
 					}
 
-					client.query({
-						text: 'SELECT ' +
-						'f.value::int AS k, ' +
-						'f.category_id AS v ' +
-						'FROM ' + _table_prefix + 'category_custom_fields AS f ' +
-						'WHERE f.name = \'import_id\''
-					}, [], function(err, result) {
-						done(err);
+					result.rows.forEach(function(row) {
+						if (row.k in user_emails) {
+							_imported.u[user_emails[row.k]] = row.v;
+						}
+					});
 
+
+					pg.connect(_url, function(err, client, done) {
 						if (err) {
 							return callback(err);
 						}
 
-						result.rows.forEach(function(row) {
-							_imported.c[row.k] = row.v;
-						});
+						client.query({
+							text: 'SELECT ' +
+							'f.value::int AS k, ' +
+							'f.category_id AS v ' +
+							'FROM ' + _table_prefix + 'category_custom_fields AS f ' +
+							'WHERE f.name = \'import_id\''
+						}, [], function(err, result) {
+							done(err);
 
-						callback(null, config);
+							if (err) {
+								return callback(err);
+							}
+
+							result.rows.forEach(function(row) {
+								_imported.c[row.k] = row.v;
+							});
+
+							callback(null, config);
+						});
 					});
 				});
 			});
