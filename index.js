@@ -11,6 +11,7 @@ var mssql = require('mssql');
 
 	var allowed_keys = {
 		"cs": function(x) { return x; },
+		"skip_cs": function(x) { if (x !== true) throw "skip_cs can only be true if provided"; },
 		"user_id_greater": function(x) { return parseInt(x, 10); },
 		"user_created_after": function(x) { return new Date(x); },
 		"user_where": function(x) { return String(x); },
@@ -52,16 +53,27 @@ var mssql = require('mssql');
 			return;
 		}
 
+		if (_config.skip_cs) {
+			_cs = null;
+			return callback(null, config);
+		}
+
 		_cs = _config.cs;
 		if (!_cs) {
 			return callback("Need {\"cs\":\"community server connection string\"} in custom field");
 		}
 
-		getImportedIDs(config, callback);
+		mssql.connect(_cs).then(function(err) {
+			if (err) {
+				return callback(err);
+			}
+
+			getImportedIDs(config, callback);
+		});
 	};
 
 	function getImportedIDs(config, callback) {
-		_imported = {c: {}, u: {}};
+		_imported = {c: {}, u: {}, topics_offset: -1, posts_offset: -1};
 
 		pg.connect(_url, function(err, client, done) {
 			if (err) {
@@ -264,6 +276,72 @@ var mssql = require('mssql');
 	// XXX: assumes topics are imported iff the first post is imported
 
 	Exporter.getPaginatedTopics = function(start, limit, callback) {
+		if (start === 0 && _imported.topics_offset !== 0) {
+			_imported.topics_offset = -1;
+		}
+		if (_config.skip_cs) {
+			_imported.topics_offset = 0;
+		}
+		if (_imported.topics_offset === -1) {
+			var req = new mssql.Request();
+			req.input('limit', mssql.Int, limit);
+			req.input('start', mssql.Int, start);
+			req.query('SELECT TOP @limit * ' +
+				'FROM (SELECT ' +
+				'ROW_NUMBER() OVER (ORDER BY t.ThreadID ASC) AS _rowid, '  +
+				't.ThreadID * 2 AS _tid, ' +
+				'p.PostID * 2 AS _pid, ' +
+				't.UserID AS _uid, ' +
+				't.PostAuthor AS _guest, ' +
+				't.SectionID AS _cid, ' +
+				'p.IPAddress AS _ip, ' +
+				'p.Subject AS _title, ' +
+				'p.Body AS _content, ' +
+				't.PostDate AS _timestamp, ' +
+				't.TotalViews AS _viewcount, ' +
+				't.IsLocked AS _locked, ' +
+				'1 - t.IsApproved AS _deleted, ' +
+				't.IsSticky AS _pinned ' +
+				'FROM dbo.cs_Threads AS t ' +
+				'INNER JOIN dbo.cs_Posts AS p ' +
+				'ON p.ThreadID = t.ThreadID AND p.ParentID = p.PostID ' +
+				'WHERE p.PostType = 1 ' +
+				'AND p.PostConfiguration = 0) AS topics' +
+				'WHERE _rowid > @start ' +
+				'ORDER BY t.ThreadID ASC', function(err, rows) {
+				if (err) {
+					return callback(err);
+				}
+
+				if (rows.length === 0) {
+					_imported.topics_offset = start;
+					return discoursePaginatedTopics(0, limit, callback);
+				}
+
+				var topics = {};
+
+				rows.forEach(function(row) {
+					delete row._rowid;
+					if (row._uid === 1001) {
+						delete row._uid;
+					} else {
+						row._uid = _imported.u[row._uid];
+						delete row._guest;
+					}
+					row._cid = _imported.c[row._cid];
+					row._timestamp = +row._timestamp;
+					row._edited = +row._edited;
+					topics[row._tid] = row;
+				});
+
+				callback(null, topics);
+			});
+		} else {
+			discoursePaginatedTopics(start - _imported.topics_offset, limit, callback);
+		}
+	};
+
+	function discoursePaginatedTopics(start, limit, callback) {
 		pg.connect(_url, function(err, client, done) {
 			if (err) {
 				return callback(err);
@@ -315,11 +393,73 @@ var mssql = require('mssql');
 				callback(null, topics);
 			});
 		});
-	};
+	}
 
 	// XXX: assumes imported posts never reply to non-imported posts
+	// XXX: does not import tags, but they're mostly deleted anyway
 
 	Exporter.getPaginatedPosts = function(start, limit, callback) {
+		if (start === 0 && _imported.posts_offset !== 0) {
+			_imported.posts_offset = -1;
+		}
+		if (_config.skip_cs) {
+			_imported.posts_offset = 0;
+		}
+		if (_imported.posts_offset === -1) {
+			var req = new mssql.Request();
+			req.input('limit', mssql.Int, limit);
+			req.input('start', mssql.Int, start);
+			req.query('SELECT TOP @limit * ' +
+				'FROM (SELECT ' +
+				'ROW_NUMBER() OVER (ORDER BY p.PostID ASC) AS _rowid, '  +
+				'p.ThreadID * 2 AS _tid, ' +
+				'p.PostID * 2 AS _pid, ' +
+				'p.UserID AS _uid, ' +
+				'p.PostAuthor AS _guest, ' +
+				'CASE WHEN p.ParentID = p.PostID THEN NULL ELSE p.ParentID END AS [_toPid], ' +
+				'p.IPAddress AS _ip, ' +
+				'CASE WHEN p.Subject = pp.Subject THEN \'\' WHEN p.Subject = \'Re: \' + pp.Subject THEN \'\' ELSE \'# \' + p.Subject + \'\n\n\' END + p.Body AS _content, ' +
+				'p.PostDate AS _timestamp, ' +
+				'1 - t.IsApproved AS _deleted ' +
+				'FROM dbo.cs_Posts AS p ' +
+				'LEFT OUTER JOIN dbo.cs_Posts AS pp ' +
+				'ON p.ParentID = pp.PostID ' +
+				'WHERE p.PostType = 1 ' +
+				'AND p.PostConfiguration = 0 ' +
+				'AND p.ParentID <> p.PostID) AS topics' +
+				'WHERE _rowid > @start ' +
+				'ORDER BY p.PostID ASC', function(err, rows) {
+				if (err) {
+					return callback(err);
+				}
+
+				if (rows.length === 0) {
+					_imported.posts_offset = start;
+					return discoursePaginatedPosts(0, limit, callback);
+				}
+
+				var posts = {};
+
+				rows.forEach(function(row) {
+					delete row._rowid;
+					if (row._uid === 1001) {
+						delete row._uid;
+					} else {
+						row._uid = _imported.u[row._uid];
+						delete row._guest;
+					}
+					row._timestamp = +row._timestamp;
+					posts[row._pid] = row;
+				});
+
+				callback(null, posts);
+			});
+		} else {
+			discoursePaginatedPosts(start - _imported.posts_offset, limit, callback);
+		}
+	};
+
+	function discoursePaginatedPosts(start, limit, callback) {
 		pg.connect(_url, function(err, client, done) {
 			if (err) {
 				return callback(err);
@@ -376,7 +516,7 @@ var mssql = require('mssql');
 				callback(null, posts);
 			});
 		});
-	};
+	}
 
 	Exporter.getPaginatedVotes = function(start, limit, callback) {
 		pg.connect(_url, function(err, client, done) {
@@ -482,6 +622,7 @@ var mssql = require('mssql');
 	};
 
 	Exporter.teardown = function(callback) {
+		mssql.close();
 		callback();
 	};
 })(module.exports);
