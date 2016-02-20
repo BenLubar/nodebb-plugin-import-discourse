@@ -1,7 +1,7 @@
 {
-  "name": "nodebb-plugin-import-discourse",
+  "name": "nodebb-plugin-import-tdwtf",
   "version": "0.0.14",
-  "description": "A module for nodebb-plugin-import that interfaces with Discourse",
+  "description": "A module for nodebb-plugin-import that interfaces with Discourse and Community Server",
   "main": "index.js",
   "scripts": {
     "test": "node test.js"
@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "async": "^0.9.2",
+    "mssql": "^3.1.0",
     "nodebb-plugin-import": "^0.3.23",
     "pg": "~4.4.2"
   },

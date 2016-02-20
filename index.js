@@ -159,12 +159,15 @@ var pg = require('pg');
 
 			client.query({
 				text: 'SELECT ' +
-				'c.id AS _cid, ' +
+				'c.id * 2 + 1 AS _cid, ' +
 				'c.name AS _name, ' +
 				'c.description AS _description, ' +
 				'c."position" AS _order, ' +
 				'c.slug AS _slug, ' +
-				'c.parent_category_id AS "_parentCid", ' +
+				'COALESCE((SELECT p.value::int * 2 ' +
+					'FROM ' + _table_prefix + 'category_custom_fields AS p ' +
+					'WHERE p.name = \'import_id\' AND p.category_id = c.parent_category_id), ' +
+				'c.parent_category_id * 2 + 1) AS "_parentCid", ' +
 				'\'/c/\' || CASE ' +
 					'WHEN c.parent_category_id IS NULL THEN \'\' ' +
 					'ELSE (SELECT p.slug FROM ' + _table_prefix + 'categories AS p WHERE p.id = c.parent_category_id) || \'/\' ' +
@@ -172,6 +175,9 @@ var pg = require('pg');
 				'\'#\' || c.text_color AS _color, ' +
 				'\'#\' || c.color AS "_bgColor" ' +
 				'FROM ' + _table_prefix + 'categories AS c ' +
+				'LEFT OUTER JOIN ' + _table_prefix + 'category_custom_fields AS f ' +
+				'ON f.category_id = c.id AND f.name = \'import_id\' ' +
+				'WHERE f.value IS NULL ' +
 				'ORDER BY _cid ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
@@ -194,6 +200,8 @@ var pg = require('pg');
 		});
 	};
 
+	// XXX: assumes topics are imported iff the first post is imported
+
 	Exporter.getPaginatedTopics = function(start, limit, callback) {
 		pg.connect(_url, function(err, client, done) {
 			if (err) {
@@ -202,10 +210,13 @@ var pg = require('pg');
 
 			client.query({
 				text: 'SELECT ' +
-				't.id AS _tid, ' +
-				'p.id AS _pid, ' +
+				't.id * 2 + 1 AS _tid, ' +
+				'p.id * 2 + 1 AS _pid, ' +
 				't.user_id AS _uid, ' +
-				't.category_id AS _cid, ' +
+				'COALESCE((SELECT c.value::int * 2 ' +
+					'FROM ' + _table_prefix + 'category_custom_fields AS c ' +
+					'WHERE c.name = \'import_id\' AND c.category_id = t.category_id), ' +
+				't.category_id * 2 + 1) AS _cid, ' +
 				't.title AS _title, ' +
 				'p.raw AS _content, ' +
 				't.created_at AS _timestamp, ' +
@@ -217,7 +228,10 @@ var pg = require('pg');
 				'FROM ' + _table_prefix + 'topics AS t ' +
 				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
 				'ON p.topic_id = t.id AND p.post_number = 1 ' +
+				'LEFT OUTER JOIN ' + _table_prefix + 'topic_custom_fields AS f ' +
+				'ON f.topic_id = t.id AND f.name = \'import_id\' ' +
 				'WHERE t.archetype = \'regular\' ' +
+				'AND f.value IS NULL ' +
 				'AND t.id > $3::int ' +
 				'AND t.created_at > $4::timestamp ' +
 				("topic_where" in _config ? 'AND (' + _config["topic_where"] + ') ' : '') +
@@ -245,6 +259,8 @@ var pg = require('pg');
 		});
 	};
 
+	// XXX: assumes imported posts never reply to non-imported posts
+
 	Exporter.getPaginatedPosts = function(start, limit, callback) {
 		pg.connect(_url, function(err, client, done) {
 			if (err) {
@@ -253,21 +269,30 @@ var pg = require('pg');
 
 			client.query({
 				text: 'SELECT ' +
-				'p.id AS _pid, ' +
-				'p.topic_id AS _tid, ' +
+				'p.id * 2 + 1 AS _pid, ' +
+				'COALESCE((SELECT t.value::int * 2 ' +
+					'FROM ' + _table_prefix + 'topic_custom_fields AS t ' +
+					'WHERE t.name = \'import_id\' AND t.topic_id = p.topic_id), ' +
+				'p.topic_id * 2 + 1) AS _tid, ' +
 				'p.user_id AS _uid, ' +
 				'p.raw AS _content, ' +
 				'p.created_at AS _timestamp, ' +
 				'p.updated_at AS _edited, ' +
 				'CASE WHEN p.deleted_at IS NULL THEN 0 ELSE 1 END AS _deleted, ' +
-				'r.id AS "_toPid" ' +
+				'COALESCE((SELECT c.value::int * 2 ' +
+					'FROM ' + _table_prefix + 'post_custom_fields AS c ' +
+					'WHERE c.name = \'import_id\' AND c.post_id = r.id), ' +
+				'r.id * 2 + 1) AS "_toPid" ' +
 				'FROM ' + _table_prefix + 'posts AS p ' +
 				'LEFT JOIN ' + _table_prefix + 'topics AS t ' +
 				'ON p.topic_id = t.id ' +
 				'LEFT OUTER JOIN ' + _table_prefix + 'posts AS r ' +
 				'ON p.topic_id = r.topic_id ' +
 				'AND p.reply_to_post_number = r.post_number ' +
+				'LEFT OUTER JOIN ' + _table_prefix + 'post_custom_fields AS f ' +
+				'ON f.topic_id = p.id AND f.name = \'import_id\' ' +
 				'WHERE p.post_number <> 1 AND t.archetype = \'regular\' ' +
+				'AND f.value IS NULL ' +
 				'AND p.id > $3::int ' +
 				'AND p.created_at > $4::timestamp ' +
 				("post_where" in _config ? 'AND (' + _config["post_where"] + ') ' : '') +
@@ -304,11 +329,17 @@ var pg = require('pg');
 			client.query({
 				text: 'SELECT ' +
 				'a.id AS _vid, ' +
-				'a.post_id AS _pid, ' +
-				'p.topic_id AS _tid, ' +
+				'COALESCE((SELECT t.value::int * 2 ' +
+					'FROM ' + _table_prefix + 'post_custom_fields AS t ' +
+					'WHERE t.name = \'import_id\' AND t.post_id = a.post_id), ' +
+				'a.post_id * 2 + 1) AS _pid, ' +
+				'COALESCE((SELECT t.value::int * 2 ' +
+					'FROM ' + _table_prefix + 'topic_custom_fields AS t ' +
+					'WHERE t.name = \'import_id\' AND t.topic_id = p.topic_id), ' +
+				'p.topic_id * 2 + 1) AS _tid, ' +
 				'p.post_number AS _pn, ' +
 				'a.user_id AS _uid, ' +
-				'1 as _action ' +
+				'1 AS _action ' +
 				'FROM ' + _table_prefix + 'post_actions AS a ' +
 				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
 				'ON a.post_id = p.id ' +
@@ -353,8 +384,14 @@ var pg = require('pg');
 			client.query({
 				text: 'SELECT ' +
 				'a.id AS _bid, ' +
-				'a.post_id AS _pid, ' +
-				'p.topic_id AS _tid, ' +
+				'COALESCE((SELECT t.value::int * 2 ' +
+					'FROM ' + _table_prefix + 'post_custom_fields AS t ' +
+					'WHERE t.name = \'import_id\' AND t.post_id = a.post_id), ' +
+				'a.post_id * 2 + 1) AS _pid, ' +
+				'COALESCE((SELECT t.value::int * 2 ' +
+					'FROM ' + _table_prefix + 'topic_custom_fields AS t ' +
+					'WHERE t.name = \'import_id\' AND t.topic_id = p.topic_id), ' +
+				'p.topic_id * 2 + 1) AS _tid, ' +
 				'a.user_id AS _uid, ' +
 				'p.post_number - 1 AS _index ' +
 				'FROM ' + _table_prefix + 'post_actions AS a ' +

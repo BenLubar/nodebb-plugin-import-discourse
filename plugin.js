@@ -10,7 +10,7 @@
 	};
 
 	Plugin.topicRedirect = function(req, res, next) {
-		db.sortedSetScore('_imported:_topics', req.params.tid, function(err, id) {
+		db.sortedSetScore('_imported:_topics', req.params.tid * 2 + 1, function(err, id) {
 			if (err || !id) {
 				return next();
 			}
@@ -19,7 +19,7 @@
 	};
 
 	Plugin.postRedirect = function(req, res, next) {
-		db.sortedSetScore('_imported:_posts', req.params.pid, function(err, id) {
+		db.sortedSetScore('_imported:_posts', req.params.pid * 2 + 1, function(err, id) {
 			if (err || !id) {
 				return next();
 			}

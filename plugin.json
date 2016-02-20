@@ -1,7 +1,7 @@
 {
-	"id":          "nodebb-plugin-import-discourse",
-	"name":        "Import Discourse",
-	"description": "A module for nodebb-plugin-import that interfaces with Discourse",
+	"id":          "nodebb-plugin-import-tdwtf",
+	"name":        "Import Discourse + Community Server",
+	"description": "A module for nodebb-plugin-import that interfaces with Discourse and Community Server",
 	"url":         "https://github.com/BenLubar/nodebb-plugin-import-discourse",
 	"library":     "./plugin.js",
 	"hooks": [
