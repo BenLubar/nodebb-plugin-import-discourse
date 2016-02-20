@@ -7,6 +7,7 @@ var mssql = require('mssql');
 	var _url;
 	var _cs;
 	var _config;
+	var _imported;
 
 	var allowed_keys = {
 		"cs": function(x) { return x; },
@@ -56,8 +57,63 @@ var mssql = require('mssql');
 			return callback("Need {\"cs\":\"community server connection string\"} in custom field");
 		}
 
-		callback(null, config);
+		getImportedIDs(config, callback);
 	};
+
+	function getImportedIDs(config, callback) {
+		_imported = {c: {}, u: {}};
+
+		pg.connect(_url, function(err, client, done) {
+			if (err) {
+				return callback(err);
+			}
+
+			client.query({
+				text: 'SELECT ' +
+				'f.value::int AS k, ' +
+				'f.user_id AS v ' +
+				'FROM ' + _table_prefix + 'user_custom_fields AS f ' +
+				'WHERE f.name = \'import_id\''
+			}, [], function(err, result) {
+				done(err);
+
+				if (err) {
+					return callback(err);
+				}
+
+				result.rows.forEach(function(row) {
+					_imported.u[row.k] = row.v;
+				});
+
+
+				pg.connect(_url, function(err, client, done) {
+					if (err) {
+						return callback(err);
+					}
+
+					client.query({
+						text: 'SELECT ' +
+						'f.value::int AS k, ' +
+						'f.category_id AS v ' +
+						'FROM ' + _table_prefix + 'category_custom_fields AS f ' +
+						'WHERE f.name = \'import_id\''
+					}, [], function(err, result) {
+						done(err);
+
+						if (err) {
+							return callback(err);
+						}
+
+						result.rows.forEach(function(row) {
+							_imported.c[row.k] = row.v;
+						});
+
+						callback(null, config);
+					});
+				});
+			});
+		});
+	}
 
 	Exporter.getPaginatedGroups = function(start, limit, callback) {
 		pg.connect(_url, function(err, client, done) {
