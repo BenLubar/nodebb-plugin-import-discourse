@@ -119,10 +119,8 @@ var pg = require('pg');
 				'ON u.id = p.user_id ' +
 				'LEFT JOIN ' + _table_prefix + 'user_stats AS s ' +
 				'ON u.id = s.user_id ' +
-				'LEFT JOIN ' + _table_prefix + 'user_avatars AS a ' +
-				'ON u.id = a.user_id ' +
 				'LEFT JOIN ' + _table_prefix + 'uploads AS f ' +
-				'ON f.id = COALESCE(a.custom_upload_id, a.gravatar_upload_id) ' +
+				'ON f.id = u.uploaded_avatar_id ' +
 				'WHERE u.id > $3::int ' +
 				'AND u.created_at > $4::timestamp ' +
 				("user_where" in _config ? 'AND (' + _config["user_where"] + ') ' : '') +
