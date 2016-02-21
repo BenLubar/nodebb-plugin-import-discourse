@@ -10,6 +10,9 @@
 		params.router.get('/user_avatar/:host/:user/:size/:name', Plugin.avatarRedirect);
 		params.router.get('/c/:parent/:child?', Plugin.categoryRedirect);
 
+		params.router.get('/user/Profile.aspx', Plugin.telligentUserRedirect);
+		params.router.get('/forums/:id.aspx', Plugin.telligentCategoryRedirect);
+
 		callback();
 	};
 
@@ -76,6 +79,54 @@
 			})) {
 				next();
 			}
+		});
+	};
+
+	Plugin.telligentUserRedirect = function(req, res, next) {
+		if (isNaN(req.query.UserID)) {
+			return next();
+		}
+
+		db.sortedSetScore('_telligent:_users', req.query.UserID, function(err, id) {
+			if (err || !id) {
+				return next();
+			}
+
+			db.sortedSetScore('_imported:_users', id, function(err, id) {
+				if (err || !id) {
+					return next();
+				}
+
+				User.getUserField(id, 'userslug', function(err, slug) {
+					if (err || !slug) {
+						return next();
+					}
+
+					res.redirect(301, '/user/' + slug);
+				})
+			});
+		});
+	};
+
+	Plugin.telligentCategoryRedirect = function(req, res, next) {
+		db.sortedSetScore('_telligent:_categories', req.params.id, function(err, id) {
+			if (err || !id) {
+				return next();
+			}
+
+			db.sortedSetScore('_imported:_categories', id, function(err, id) {
+				if (err || !id) {
+					return next();
+				}
+
+				Categories.getCategoryField(id, 'slug', function(err, slug) {
+					if (err || !slug) {
+						return next();
+					}
+
+					res.redirect(301, '/category/' + slug);
+				})
+			});
 		});
 	};
 })(module.exports);
