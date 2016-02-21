@@ -1,6 +1,7 @@
 var async = require('async');
 var pg = require('pg');
 var mssql = require('mssql');
+var db = module.parent.parent.require('./database');
 
 (function(Exporter) {
 	var _table_prefix;
@@ -75,64 +76,55 @@ var mssql = require('mssql');
 	function getImportedIDs(config, callback) {
 		_imported = {c: {}, u: {}, topics_offset: -1, posts_offset: -1};
 
-		new mssql.Request().query('SELECT u.Email AS k, u.UserID AS v FROM dbo.cs_Users AS u', function(err, rows) {
-			if (err) {
-				return callback(err);
-			}
-
-			var user_emails = {};
-			rows.forEach(function(row) {
-				user_emails[row.k] = row.v;
-			});
-
-			pg.connect(_url, function(err, client, done) {
-				if (err) {
-					return callback(err);
-				}
-
-				client.query({
-					text: 'SELECT u.email AS k, u.id AS v FROM ' + _table_prefix + 'users AS u'
-				}, [], function(err, result) {
-					done(err);
-
-					if (err) {
-						return callback(err);
-					}
-
-					result.rows.forEach(function(row) {
-						if (row.k in user_emails) {
-							_imported.u[user_emails[row.k]] = row.v;
-						}
-					});
-
-
-					pg.connect(_url, function(err, client, done) {
-						if (err) {
-							return callback(err);
-						}
-
-						client.query({
-							text: 'SELECT ' +
-							'f.value::int AS k, ' +
-							'f.category_id AS v ' +
-							'FROM ' + _table_prefix + 'category_custom_fields AS f ' +
-							'WHERE f.name = \'import_id\''
-						}, [], function(err, result) {
-							done(err);
-
-							if (err) {
-								return callback(err);
-							}
-
-							result.rows.forEach(function(row) {
-								_imported.c[row.k] = row.v;
-							});
-
-							callback(null, config);
-						});
-					});
+		async.waterfall([
+			function(next) {
+				new mssql.Request().query('SELECT u.Email AS k, u.UserID AS v FROM dbo.cs_Users AS u', next);
+			}, function(rows, next) {
+				var user_emails = {};
+				rows.forEach(function(row) {
+					user_emails[row.k] = row.v;
 				});
-			});
+
+				next(null, user_emails);
+			}, function(user_emails, next) {
+				pg.connect(_url, function(err, client, done) {
+					next(err, user_emails, client, done);
+				});
+			}, function(user_emails, client, done, next) {
+				client.query('SELECT u.email AS k, u.id AS v FROM ' + _table_prefix + 'users AS u', function(err, result) {
+					done(err);
+					next(err, user_emails, result);
+				});
+			}, function(user_emails, result, next) {
+				var scores = [], values = [];
+				result.rows.forEach(function(row) {
+					if (row.k in user_emails) {
+						_imported.u[user_emails[row.k]] = row.v;
+						scores.push(row.v);
+						values.push(user_emails[row.k]);
+					}
+				});
+
+				db.sortedSetAdd('_telligent:_users', scores, values, next);
+			}, function(next) {
+				pg.connect(_url, next);
+			}, function(client, done, next) {
+				client.query('SELECT f.value::int AS k, f.category_id AS v FROM ' + _table_prefix + 'category_custom_fields AS f WHERE f.name = \'import_id\'', function(err, result) {
+					done(err);
+					next(err, result);
+				});
+			}, function(result, next) {
+				var scores = [], values = [];
+				result.rows.forEach(function(row) {
+					_imported.c[row.k] = row.v;
+					scores.push(row.v);
+					values.push(row.k);
+				});
+
+				db.sortedSetAdd('_telligent:_categories', scores, values, next);
+			}
+		], function(err) {
+			callback(err, config);
 		});
 	}
 
