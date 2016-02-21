@@ -14,6 +14,7 @@
 		params.router.get('/forums/:id.aspx', Plugin.telligentCategoryRedirect);
 		params.router.get('/forums/t/:tid.aspx', Plugin.telligentTopicRedirect);
 		params.router.get('/forums/p/:tid/:pid.aspx', Plugin.telligentPostRedirect);
+		params.router.get('/users/avatar.aspx', Plugin.telligentAvatarRedirect);
 
 		callback();
 	};
@@ -160,6 +161,33 @@
 
 					res.redirect(301, '/topic/' + tid + '/by-post/' + index);
 				});
+			});
+		});
+	};
+
+
+	Plugin.telligentUserRedirect = function(req, res, next) {
+		if (isNaN(req.query.userid)) {
+			return next();
+		}
+
+		db.sortedSetScore('_telligent:_users', req.query.userid, function(err, id) {
+			if (err || !id) {
+				return next();
+			}
+
+			db.sortedSetScore('_imported:_users', id, function(err, id) {
+				if (err || !id) {
+					return next();
+				}
+
+				User.getUserField(id, 'picture', function(err, url) {
+					if (err || !url) {
+						return next();
+					}
+
+					res.redirect(302, url);
+				})
 			});
 		});
 	};
