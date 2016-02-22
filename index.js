@@ -309,7 +309,7 @@ var db = require('../../src/database');
 				'INNER JOIN dbo.cs_Posts AS p ' +
 				'ON p.ThreadID = t.ThreadID AND p.ParentID = p.PostID ' +
 				'WHERE p.PostType = 1 ' +
-				'AND p.PostConfiguration = 0) AS topics' +
+				'AND p.PostConfiguration = 0) AS t ' +
 				'WHERE _rowid > @start ' +
 				'ORDER BY t.ThreadID ASC', function(err, rows) {
 				if (err) {
@@ -429,7 +429,7 @@ var db = require('../../src/database');
 				'ON p.ParentID = pp.PostID ' +
 				'WHERE p.PostType = 1 ' +
 				'AND p.PostConfiguration = 0 ' +
-				'AND p.ParentID <> p.PostID) AS topics' +
+				'AND p.ParentID <> p.PostID) AS p ' +
 				'WHERE _rowid > @start ' +
 				'ORDER BY p.PostID ASC', function(err, rows) {
 				if (err) {
