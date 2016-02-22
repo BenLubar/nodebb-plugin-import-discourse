@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "async": "^0.9.2",
-    "mssql": "^3.1.0",
+    "mssql": "^3.1.1",
     "nodebb-plugin-import": "^0.3.23",
     "pg": "~4.4.2"
   },

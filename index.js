@@ -2,6 +2,8 @@ var async = require('async');
 var pg = require('pg');
 var mssql = require('mssql');
 var db = require('../../src/database');
+var utils = require('../../public/src/utils');
+var winston = module.parent.require('winston');
 
 (function(Exporter) {
 	var _table_prefix;
@@ -70,7 +72,7 @@ var db = require('../../src/database');
 			}
 
 			getImportedIDs(config, callback);
-		});
+		}).config.options.requestTimeout = 60 * 60 * 1000;
 	};
 
 	function getImportedIDs(config, callback) {
@@ -107,24 +109,66 @@ var db = require('../../src/database');
 					}
 				});
 
-				db.sortedSetAdd('_telligent:_users', scores, values, next);
+				db.sortedSetAdd('_telligent:_users', scores, values, function(err) { next(err); });
 			}, function(next) {
-				pg.connect(_url, function(err, client, done) {
-					next(err, client, done);
+				new mssql.Request().query('SELECT s.SectionID AS k, s.Name AS v FROM dbo.cs_Sections AS s WHERE s.SectionID >= 10', function(err, rows) {
+					next(err, rows);
 				});
-			}, function(client, done, next) {
+			}, function(rows, next) {
+				var cscats = {};
+				rows.forEach(function(row) {
+					cscats[row.k] = row.v;
+				});
+				next(null, cscats);
+			}, function(cscats, next) {
+				pg.connect(_url, function(err, client, done) {
+					next(err, client, done, cscats);
+				});
+			}, function(client, done, cscats, next) {
 				client.query('SELECT f.value::int AS k, f.category_id AS v FROM ' + _table_prefix + 'category_custom_fields AS f WHERE f.name = \'import_id\'', function(err, result) {
 					done(err);
-					next(err, result);
+					next(err, result, cscats);
 				});
-			}, function(result, next) {
+			}, function(result, cscats, next) {
 				var scores = [], values = [];
 				result.rows.forEach(function(row) {
 					_imported.c[row.k] = row.v;
 					scores.push(row.v);
 					values.push(row.k);
+					delete cscats[row.k];
 				});
 
+				next(null, scores, values, cscats);
+			}, function(scores, values, cscats, next) {
+				pg.connect(_url, function(err, client, done) {
+					next(err, client, done, scores, values, cscats);
+				});
+			}, function(client, done, scores, values, cscats, next) {
+				client.query('SELECT c.id AS id, c.slug AS slug FROM ' + _table_prefix + 'categories AS c', function(err, result) {
+					done(err);
+					next(err, scores, values, cscats, result);
+				});
+			}, function(scores, values, cscats, result, next) {
+				result.rows.forEach(function(row) {
+					Object.keys(cscats).some(function(id) {
+						if (utils.slugify(cscats[id]) == row.slug) {
+							_imported.c[id] = row.id;
+							scores.push(row.id);
+							values.push(id);
+							delete cscats[id];
+
+							return true;
+						}
+						return false;
+					});
+				});
+
+				Object.keys(cscats).forEach(function(id) {
+					winston.warn('skipping posts from Community Server category #' + id + ': ' + cscats[id]);
+				});
+
+				next(null, scores, values);
+			}, function(scores, values, next) {
 				db.sortedSetAdd('_telligent:_categories', scores, values, next);
 			}
 		], function(err) {
@@ -251,9 +295,6 @@ var db = require('../../src/database');
 				'\'#\' || c.text_color AS _color, ' +
 				'\'#\' || c.color AS "_bgColor" ' +
 				'FROM ' + _table_prefix + 'categories AS c ' +
-				'LEFT OUTER JOIN ' + _table_prefix + 'category_custom_fields AS f ' +
-				'ON f.category_id = c.id AND f.name = \'import_id\' ' +
-				'WHERE f.value IS NULL ' +
 				'ORDER BY _cid ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
@@ -289,9 +330,7 @@ var db = require('../../src/database');
 			var req = new mssql.Request();
 			req.input('limit', mssql.Int, limit);
 			req.input('start', mssql.Int, start);
-			req.query('SELECT TOP @limit * ' +
-				'FROM (SELECT ' +
-				'ROW_NUMBER() OVER (ORDER BY t.ThreadID ASC) AS _rowid, '  +
+			req.query('SELECT ' +
 				't.ThreadID * 2 AS _tid, ' +
 				'p.PostID * 2 AS _pid, ' +
 				't.UserID AS _uid, ' +
@@ -309,9 +348,10 @@ var db = require('../../src/database');
 				'INNER JOIN dbo.cs_Posts AS p ' +
 				'ON p.ThreadID = t.ThreadID AND p.ParentID = p.PostID ' +
 				'WHERE p.PostType = 1 ' +
-				'AND p.PostConfiguration = 0) AS t ' +
-				'WHERE _rowid > @start ' +
-				'ORDER BY t.ThreadID ASC', function(err, rows) {
+				'AND p.PostConfiguration = 0 ' +
+				'ORDER BY _tid ASC ' +
+				'OFFSET @start ROWS ' +
+				'FETCH NEXT @limit ROWS ONLY', function(err, rows) {
 				if (err) {
 					return callback(err);
 				}
@@ -324,7 +364,6 @@ var db = require('../../src/database');
 				var topics = {};
 
 				rows.forEach(function(row) {
-					delete row._rowid;
 					if (row._uid === 1001) {
 						delete row._uid;
 					} else {
@@ -412,26 +451,25 @@ var db = require('../../src/database');
 			var req = new mssql.Request();
 			req.input('limit', mssql.Int, limit);
 			req.input('start', mssql.Int, start);
-			req.query('SELECT TOP @limit * ' +
-				'FROM (SELECT ' +
-				'ROW_NUMBER() OVER (ORDER BY p.PostID ASC) AS _rowid, '  +
+			req.query('SELECT ' +
 				'p.ThreadID * 2 AS _tid, ' +
 				'p.PostID * 2 AS _pid, ' +
 				'p.UserID AS _uid, ' +
 				'p.PostAuthor AS _guest, ' +
 				'CASE WHEN p.ParentID = p.PostID THEN NULL ELSE p.ParentID END AS [_toPid], ' +
 				'p.IPAddress AS _ip, ' +
-				'CASE WHEN p.Subject = pp.Subject THEN \'\' WHEN p.Subject = \'Re: \' + pp.Subject THEN \'\' ELSE \'# \' + p.Subject + \'\n\n\' END + p.Body AS _content, ' +
+				'CASE WHEN p.Subject = pp.Subject THEN \'\' WHEN p.Subject = \'Re: \' + pp.Subject THEN \'\' ELSE \'# \' + p.Subject + \'\\n\\n\' END + CAST(p.Body AS nvarchar(max)) AS _content, ' +
 				'p.PostDate AS _timestamp, ' +
-				'1 - t.IsApproved AS _deleted ' +
+				'1 - p.IsApproved AS _deleted ' +
 				'FROM dbo.cs_Posts AS p ' +
 				'LEFT OUTER JOIN dbo.cs_Posts AS pp ' +
 				'ON p.ParentID = pp.PostID ' +
 				'WHERE p.PostType = 1 ' +
 				'AND p.PostConfiguration = 0 ' +
-				'AND p.ParentID <> p.PostID) AS p ' +
-				'WHERE _rowid > @start ' +
-				'ORDER BY p.PostID ASC', function(err, rows) {
+				'AND p.ParentID <> p.PostID ' +
+				'ORDER BY _pid ASC ' +
+				'OFFSET @start ROWS ' +
+				'FETCH NEXT @limit ROWS ONLY', function(err, rows) {
 				if (err) {
 					return callback(err);
 				}
@@ -444,7 +482,6 @@ var db = require('../../src/database');
 				var posts = {};
 
 				rows.forEach(function(row) {
-					delete row._rowid;
 					if (row._uid === 1001) {
 						delete row._uid;
 					} else {
