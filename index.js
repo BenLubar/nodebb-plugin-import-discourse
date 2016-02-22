@@ -1,7 +1,7 @@
 var async = require('async');
 var pg = require('pg');
 var mssql = require('mssql');
-var db = module.parent.parent.require('./database');
+var db = require('../../src/database');
 
 (function(Exporter) {
 	var _table_prefix;
@@ -64,7 +64,7 @@ var db = module.parent.parent.require('./database');
 			return callback("Need {\"cs\":\"community server connection string\"} in custom field");
 		}
 
-		mssql.connect(_cs).then(function(err) {
+		mssql.connect(_cs, function(err) {
 			if (err) {
 				return callback(err);
 			}
@@ -78,7 +78,9 @@ var db = module.parent.parent.require('./database');
 
 		async.waterfall([
 			function(next) {
-				new mssql.Request().query('SELECT u.Email AS k, u.UserID AS v FROM dbo.cs_Users AS u', next);
+				new mssql.Request().query('SELECT u.Email AS k, u.UserID AS v FROM dbo.cs_Users AS u', function(err, rows) {
+					next(err, rows);
+				});
 			}, function(rows, next) {
 				var user_emails = {};
 				rows.forEach(function(row) {
@@ -107,7 +109,9 @@ var db = module.parent.parent.require('./database');
 
 				db.sortedSetAdd('_telligent:_users', scores, values, next);
 			}, function(next) {
-				pg.connect(_url, next);
+				pg.connect(_url, function(err, client, done) {
+					next(err, client, done);
+				});
 			}, function(client, done, next) {
 				client.query('SELECT f.value::int AS k, f.category_id AS v FROM ' + _table_prefix + 'category_custom_fields AS f WHERE f.name = \'import_id\'', function(err, result) {
 					done(err);
