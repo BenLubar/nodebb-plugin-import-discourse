@@ -528,7 +528,7 @@ var winston = module.parent.require('winston');
 				'ON p.topic_id = r.topic_id ' +
 				'AND p.reply_to_post_number = r.post_number ' +
 				'LEFT OUTER JOIN ' + _table_prefix + 'post_custom_fields AS f ' +
-				'ON f.topic_id = p.id AND f.name = \'import_id\' ' +
+				'ON f.post_id = p.id AND f.name = \'import_id\' ' +
 				'WHERE p.post_number <> 1 AND t.archetype = \'regular\' ' +
 				'AND f.value IS NULL ' +
 				'AND p.id > $3::int ' +
