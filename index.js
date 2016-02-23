@@ -349,7 +349,8 @@ var winston = module.parent.require('winston');
 				'ON p.ThreadID = t.ThreadID AND p.ParentID = p.PostID ' +
 				'WHERE p.PostType = 1 ' +
 				'AND p.PostConfiguration = 0 ' +
-				'ORDER BY _tid ASC ' +
+				'AND t.SectionID >= 10 ' +
+				'ORDER BY t.ThreadID ASC ' +
 				'OFFSET @start ROWS ' +
 				'FETCH NEXT @limit ROWS ONLY', function(err, rows) {
 				if (err) {
@@ -370,7 +371,7 @@ var winston = module.parent.require('winston');
 						row._uid = _imported.u[row._uid];
 						delete row._guest;
 					}
-					row._cid = _imported.c[row._cid];
+					row._cid = _imported.c[row._cid] || ('cs-' + row._cid);
 					row._timestamp = +row._timestamp;
 					row._edited = +row._edited;
 					topics[row._tid] = row;
@@ -464,10 +465,13 @@ var winston = module.parent.require('winston');
 				'FROM dbo.cs_Posts AS p ' +
 				'LEFT OUTER JOIN dbo.cs_Posts AS pp ' +
 				'ON p.ParentID = pp.PostID ' +
+				'INNER JOIN dbo.cs_Threads AS t ' +
+				'ON p.ThreadID = t.ThreadID ' +
 				'WHERE p.PostType = 1 ' +
 				'AND p.PostConfiguration = 0 ' +
 				'AND p.ParentID <> p.PostID ' +
-				'ORDER BY _pid ASC ' +
+				'AND t.SectionID >= 10 ' +
+				'ORDER BY p.PostID ASC ' +
 				'OFFSET @start ROWS ' +
 				'FETCH NEXT @limit ROWS ONLY', function(err, rows) {
 				if (err) {
