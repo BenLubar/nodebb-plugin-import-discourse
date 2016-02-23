@@ -189,7 +189,7 @@ var winston = module.parent.require('winston');
 				'g.created_at AS _timestamp ' +
 				'FROM ' + _table_prefix + 'groups AS g ' +
 				'WHERE g.id >= 10 ' +
-				'ORDER BY _gid ASC ' +
+				'ORDER BY g.id ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
 				types: ["int", "int"]
@@ -249,7 +249,7 @@ var winston = module.parent.require('winston');
 				'WHERE u.id > $3::int ' +
 				'AND u.created_at > $4::timestamp ' +
 				("user_where" in _config ? 'AND (' + _config["user_where"] + ') ' : '') +
-				'ORDER BY _uid ASC ' +
+				'ORDER BY u.id ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
 				types: ["int", "int", "int", "timestamp"]
@@ -295,7 +295,7 @@ var winston = module.parent.require('winston');
 				'\'#\' || c.text_color AS _color, ' +
 				'\'#\' || c.color AS "_bgColor" ' +
 				'FROM ' + _table_prefix + 'categories AS c ' +
-				'ORDER BY _cid ASC ' +
+				'ORDER BY c.id ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
 				types: ["int", "int"]
@@ -414,7 +414,7 @@ var winston = module.parent.require('winston');
 				'AND t.id > $3::int ' +
 				'AND t.created_at > $4::timestamp ' +
 				("topic_where" in _config ? 'AND (' + _config["topic_where"] + ') ' : '') +
-				'ORDER BY _tid ASC ' +
+				'ORDER BY t.id ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
 				types: ["int", "int", "int", "timestamp"]
@@ -538,7 +538,7 @@ var winston = module.parent.require('winston');
 				'AND p.id > $3::int ' +
 				'AND p.created_at > $4::timestamp ' +
 				("post_where" in _config ? 'AND (' + _config["post_where"] + ') ' : '') +
-				'ORDER BY _pid ASC ' +
+				'ORDER BY p.id ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
 				types: ["int", "int", "int", "timestamp"]
@@ -589,7 +589,7 @@ var winston = module.parent.require('winston');
 				'AND a.id > $3::int ' +
 				'AND a.created_at > $4::timestamp ' +
 				("vote_where" in _config ? 'AND (' + _config["vote_where"] + ') ' : '') +
-				'ORDER BY _vid ASC ' +
+				'ORDER BY a.id ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
 				types: ["int", "int", "int", "timestamp"]
@@ -643,7 +643,7 @@ var winston = module.parent.require('winston');
 				'AND a.id > $3::int ' +
 				'AND a.created_at > $4::timestamp ' +
 				("bookmark_where" in _config ? 'AND (' + _config["bookmark_where"] + ') ' : '') +
-				'ORDER BY _bid ASC ' +
+				'ORDER BY a.id ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
 				types: ["int", "int", "int", "timestamp"]
