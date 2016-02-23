@@ -14,7 +14,7 @@ var winston = module.parent.require('winston');
 
 	var allowed_keys = {
 		"cs": function(x) { return x; },
-		"skip_cs": function(x) { if (x !== true) throw "skip_cs can only be true if provided"; },
+		"skip_cs": function(x) { if (x !== true) throw "skip_cs can only be true if provided"; return x; },
 		"user_id_greater": function(x) { return parseInt(x, 10); },
 		"user_created_after": function(x) { return new Date(x); },
 		"user_where": function(x) { return String(x); },
@@ -56,6 +56,8 @@ var winston = module.parent.require('winston');
 			return;
 		}
 
+		_imported = {c: {}, u: {}, topics_offset: -1, posts_offset: -1};
+
 		if (_config.skip_cs) {
 			_cs = null;
 			return callback(null, config);
@@ -76,8 +78,6 @@ var winston = module.parent.require('winston');
 	};
 
 	function getImportedIDs(config, callback) {
-		_imported = {c: {}, u: {}, topics_offset: -1, posts_offset: -1};
-
 		async.waterfall([
 			function(next) {
 				new mssql.Request().query('SELECT u.Email AS k, u.UserID AS v FROM dbo.cs_Users AS u', function(err, rows) {
