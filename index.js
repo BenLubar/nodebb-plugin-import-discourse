@@ -531,9 +531,9 @@ var winston = module.parent.require('winston');
 			'AND p.reply_to_post_number = r.post_number ' +
 			'LEFT OUTER JOIN ' + _table_prefix + 'post_custom_fields AS f ' +
 			'ON f.post_id = p.id AND f.name = \'import_id\' ' +
-			'LEFT OUTER JOIN ' + _table_prefix + 'topic_custom_fields AS tf' +
+			'LEFT OUTER JOIN ' + _table_prefix + 'topic_custom_fields AS tf ' +
 			'ON tf.topic_id = p.topic_id AND tf.name = \'import_id\' ' +
-			'LEFT OUTER JOIN ' + _table_prefix + 'post_custom_fields AS rf' +
+			'LEFT OUTER JOIN ' + _table_prefix + 'post_custom_fields AS rf ' +
 			'ON rf.post_id = r.id AND rf.name = \'import_id\' ' +
 			'WHERE p.post_number <> 1 AND t.archetype = \'regular\' ' +
 			'AND f.value IS NULL ' +
