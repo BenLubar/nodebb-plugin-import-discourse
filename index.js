@@ -435,6 +435,9 @@ var winston = module.parent.require('winston');
 				var topics = {};
 
 				result.rows.forEach(function(row) {
+					if (utils.slugify(row._title).length === 0) {
+						row._title += ' (invalid title)';
+					}
 					row._timestamp = +row._timestamp;
 					row._edited = +row._edited;
 					topics[row._tid] = row;
