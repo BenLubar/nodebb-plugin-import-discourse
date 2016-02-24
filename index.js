@@ -1,5 +1,6 @@
 var async = require('async');
 var pg = require('pg');
+var utils = require('../../public/src/utils');
 
 (function(Exporter) {
 	var _table_prefix;
@@ -233,6 +234,9 @@ var pg = require('pg');
 				var topics = {};
 
 				result.rows.forEach(function(row) {
+					if (utils.slugify(row._title).length === 0) {
+						row._title += ' (invalid title)';
+					}
 					row._timestamp = +row._timestamp;
 					row._edited = +row._edited;
 					topics[row._tid] = row;
