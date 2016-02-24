@@ -635,7 +635,6 @@ var winston = module.parent.require('winston');
 			'a.id AS _bid, ' +
 			'COALESCE(pf.value::int * 2, a.post_id * 2 + 1) AS _pid, ' +
 			'COALESCE(tf.value::int * 2, p.topic_id * 2 + 1) AS _tid, ' +
-			'p.topic_id * 2 + 1) AS _tid, ' +
 			'a.user_id AS _uid, ' +
 			'p.post_number - 1 AS _index ' +
 			'FROM ' + _table_prefix + 'post_actions AS a ' +
