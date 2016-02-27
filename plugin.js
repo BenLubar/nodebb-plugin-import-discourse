@@ -166,7 +166,7 @@
 	};
 
 
-	Plugin.telligentUserRedirect = function(req, res, next) {
+	Plugin.telligentAvatarRedirect = function(req, res, next) {
 		if (isNaN(req.query.userid)) {
 			return next();
 		}
