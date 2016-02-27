@@ -139,7 +139,7 @@
 				return next();
 			}
 
-			res.redirect(301, '/topic/' + id + (isNaN(req.query.PageIndex) ? '' : '/from-cs/' + (req.query.PageIndex * 50 - 49));
+			res.redirect(301, '/topic/' + id + (isNaN(req.query.PageIndex) ? '' : '/from-cs/' + (req.query.PageIndex * 50 - 49)));
 		});
 	};
 
