@@ -1,6 +1,7 @@
 (function(Plugin) {
 	var db = module.parent.require('./database'),
 	    Posts = module.parent.require('./posts'),
+	    Topics = module.parent.require('./topics'),
 	    User = module.parent.require('./user'),
 	    Categories = module.parent.require('./categories'),
 	    redirect = module.parent.require('./controllers/helpers').redirect;
@@ -36,7 +37,14 @@
 			if (err || !id) {
 				return next();
 			}
-			redirect(res, '/topic/' + id + '/' + req.params.title + (req.params.post_index ? '/' + req.params.post_index : ''));
+
+			Topics.getTopicField(id, 'slug', function(err, slug) {
+				if (err || !slug) {
+					return next();
+				}
+
+				redirect(res, '/topic/' + slug + (req.params.post_index ? '/' + req.params.post_index : ''));
+			});
 		});
 	};
 
@@ -55,7 +63,14 @@
 						return next();
 					}
 
-					redirect(res, '/topic/' + tid + '/by-post/' + index);
+
+					Topics.getTopicField(tid, 'slug', function(err, slug) {
+						if (err || !slug) {
+							return next();
+						}
+
+						redirect(res, '/topic/' + slug + '/' + index);
+					});
 				});
 			});
 		});
@@ -151,7 +166,13 @@
 				return next();
 			}
 
-			redirect(res, '/topic/' + id + (isNaN(req.query.PageIndex) ? '' : '/from-cs/' + (req.query.PageIndex * 50 - 49)));
+			Topics.getTopicField(id, 'slug', function(err, slug) {
+				if (err || !slug) {
+					return next();
+				}
+
+				redirect(res, '/topic/' + slug + '/' + (req.query.PageIndex * 50 - 49));
+			});
 		});
 	};
 
@@ -171,7 +192,13 @@
 						return next();
 					}
 
-					redirect(res, '/topic/' + tid + '/by-post/' + index);
+					Topics.getTopicField(tid, 'slug', function(err, slug) {
+						if (err || !slug) {
+							return next();
+						}
+
+						redirect(res, '/topic/' + slug + '/' + index);
+					});
 				});
 			});
 		});
