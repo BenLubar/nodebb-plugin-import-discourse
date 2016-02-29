@@ -6,6 +6,8 @@
 	    redirect = module.parent.require('./controllers/helpers').redirect;
 
 	Plugin.load = function(params, callback) {
+		params.router.get('/t/:tid', Plugin.topicRedirect);
+		params.router.get('/api/t/:tid', Plugin.topicRedirect);
 		params.router.get('/t/:title/:tid/:post_index?', Plugin.topicRedirect);
 		params.router.get('/api/t/:title/:tid/:post_index?', Plugin.topicRedirect);
 		params.router.get('/p/:pid', Plugin.postRedirect);
