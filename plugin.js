@@ -2,13 +2,18 @@
 	var db = module.parent.require('./database'),
 	    Posts = module.parent.require('./posts'),
 	    User = module.parent.require('./user'),
-	    Categories = module.parent.require('./categories');
+	    Categories = module.parent.require('./categories'),
+	    redirect = module.parent.require('./controllers/helpers').redirect;
 
 	Plugin.load = function(params, callback) {
 		params.router.get('/t/:title/:tid/:post_index?', Plugin.topicRedirect);
+		params.router.get('/api/t/:title/:tid/:post_index?', Plugin.topicRedirect);
 		params.router.get('/p/:pid', Plugin.postRedirect);
+		params.router.get('/api/p/:pid', Plugin.postRedirect);
 		params.router.get('/user_avatar/:host/:user/:size/:name', Plugin.avatarRedirect);
+		params.router.get('/api/user_avatar/:host/:user/:size/:name', Plugin.avatarRedirect);
 		params.router.get('/c/:parent/:child?', Plugin.categoryRedirect);
+		params.router.get('/api/c/:parent/:child?', Plugin.categoryRedirect);
 
 		callback();
 	};
@@ -18,7 +23,7 @@
 			if (err || !id) {
 				return next();
 			}
-			res.redirect(301, '/topic/' + id + '/' + req.params.title + (req.params.post_index ? '/' + req.params.post_index : ''));
+			redirect(res, '/topic/' + id + '/' + req.params.title + (req.params.post_index ? '/' + req.params.post_index : ''));
 		});
 	};
 
@@ -37,7 +42,7 @@
 						return next();
 					}
 
-					res.redirect(301, '/topic/' + tid + '/by-post/' + index);
+					redirect(res, '/topic/' + tid + '/by-post/' + index);
 				});
 			});
 		});
@@ -54,7 +59,7 @@
 					return next();
 				}
 
-				res.redirect(302, url);
+				redirect(res, url);
 			});
 		});
 	};
@@ -69,7 +74,7 @@
 
 			if (!cats.some(function(cat) {
 				if (cat.slug === cat.cid + '/' + slug) {
-					res.redirect(301, '/category/' + cat.slug);
+					redirect(res, '/category/' + cat.slug);
 					return true;
 				}
 				return false;
