@@ -288,7 +288,7 @@ var winston = module.parent.require('winston');
 			't.user_id AS _uid, ' +
 			'ARRAY(SELECT tu.user_id FROM topic_allowed_users AS tu WHERE topic_id = t.id AND tu.user_id <> t.user_id UNION SELECT gu.user_id FROM topic_allowed_groups AS tg RIGHT JOIN group_users AS gu ON gu.group_id = tg.group_id WHERE tg.topic_id = t.id AND gu.user_id <> t.user_id) AS _uids, ' +
 			't.title AS "_roomName", ' +
-			't.created_at AS _timestamp, ' +
+			't.created_at AS _timestamp ' +
 			'FROM ' + _table_prefix + 'topics AS t ' +
 			'WHERE t.archetype = \'private_message\' ' +
 			'AND t.id > $1::int ' +
