@@ -4,6 +4,7 @@
 	    Topics = module.parent.require('./topics'),
 	    User = module.parent.require('./user'),
 	    Categories = module.parent.require('./categories'),
+	    Messaging = module.parent.require('./messaging'),
 	    redirect = module.parent.require('./controllers/helpers').redirect;
 
 	Plugin.load = function(params, callback) {
@@ -35,7 +36,19 @@
 	Plugin.topicRedirect = function(req, res, next) {
 		db.sortedSetScore('_imported:_topics', req.params.tid * 2 + 1, function(err, id) {
 			if (err || !id) {
-				return next();
+				db.sortedSetScore('_imported:_rooms', req.params.tid, function(err, roomId) {
+					if (err || !roomId) {
+						return next();
+					}
+
+					Messaging.isUserInRoom(req.uid, roomId, function(err, inRoom) {
+						if (err || !inRoom) {
+							return next();
+						}
+
+						redirect(res, '/chats/' + roomId);
+					});
+				});
 			}
 
 			Topics.getTopicField(id, 'slug', function(err, slug) {
@@ -51,8 +64,27 @@
 	Plugin.postRedirect = function(req, res, next) {
 		db.sortedSetScore('_imported:_posts', req.params.pid * 2 + 1, function(err, id) {
 			if (err || !id) {
-				return next();
+				db.sortedSetScore('_imported:_messages', req.params.pid, function(err, mid) {
+					if (err || !mid) {
+						return next();
+					}
+
+					Messaging.getMessageField(mid, 'roomId', function(err, roomId) {
+						if (err || !roomId) {
+							next();
+						}
+
+						Messaging.isUserInRoom(req.uid, roomId, function(err, inRoom) {
+							if (err || !inRoom) {
+								return next();
+							}
+
+							redirect(res, '/chats/' + roomId);
+						});
+					});
+				});
 			}
+
 			Posts.getPostFields(id, 'tid', function(err, tid) {
 				if (err || !tid) {
 					return next();

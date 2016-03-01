@@ -24,6 +24,12 @@ var winston = module.parent.require('winston');
 		"post_id_greater": function(x) { return parseInt(x, 10); },
 		"post_created_after": function(x) { return new Date(x); },
 		"post_where": function(x) { return String(x); },
+		"room_id_greater": function(x) { return parseInt(x, 10); },
+		"room_created_after": function(x) { return new Date(x); },
+		"room_where": function(x) { return String(x); },
+		"message_id_greater": function(x) { return parseInt(x, 10); },
+		"message_created_after": function(x) { return new Date(x); },
+		"message_where": function(x) { return String(x); },
 		"vote_id_greater": function(x) { return parseInt(x, 10); },
 		"vote_created_after": function(x) { return new Date(x); },
 		"vote_where": function(x) { return String(x); },
@@ -275,6 +281,97 @@ var winston = module.parent.require('winston');
 			});
 		});
 	};
+
+	function discourseRoomsQuery() {
+		return 'SELECT ' +
+			't.id AS "_roomId", ' +
+			't.user_id AS _uid, ' +
+			'ARRAY(SELECT tu.user_id FROM topic_allowed_users AS tu WHERE topic_id = t.id AND tu.user_id <> t.user_id UNION SELECT gu.user_id FROM topic_allowed_groups AS tg RIGHT JOIN group_users AS gu ON gu.group_id = tg.group_id WHERE tg.topic_id = t.id AND gu.user_id <> t.user_id) AS _uids, ' +
+			't.title AS "_roomName", ' +
+			't.created_at AS _timestamp, ' +
+			'FROM ' + _table_prefix + 'topics AS t ' +
+			'WHERE t.archetype = \'private_message\' ' +
+			'AND t.id > $1::int ' +
+			'AND t.created_at > $2::timestamp ' +
+			("room_where" in _config ? 'AND (' + _config["room_where"] + ') ' : '') +
+			'ORDER BY t.id ASC';
+	}
+
+	Exporter.getPaginatedRooms = function(start, limit, callback) {
+		pg.connect(_url, function(err, client, done) {
+			if (err) {
+				return callback(err);
+			}
+
+			client.query({
+				text: discourseRoomsQuery() + ' LIMIT $3::int OFFSET $4::int',
+				types: ["int", "timestamp", "int", "int"]
+			}, [_config["room_id_greater"] || -1, _config["room_created_after"] || new Date(0), limit, start], function(err, result) {
+				done(err);
+
+				if (err) {
+					return callback(err);
+				}
+
+				var rooms = {};
+
+				result.rows.forEach(function(row) {
+					if (utils.slugify(row._roomName).length === 0) {
+						row._roomName += ' (invalid title)';
+					}
+					row._timestamp = +row._timestamp;
+					rooms[row._roomId] = row;
+				});
+
+				callback(null, rooms);
+			});
+		});
+	};
+
+	function discourseMessagesQuery() {
+		return 'SELECT ' +
+			'p.id AS _mid, ' +
+			'p.topic_id AS "_roomId", ' +
+			'p.user_id AS _fromuid, ' +
+			'p.raw AS _content, ' +
+			'p.created_at AS _timestamp ' +
+			'FROM ' + _table_prefix + 'posts AS p ' +
+			'LEFT JOIN ' + _table_prefix + 'topics AS t ' +
+			'ON p.topic_id = t.id ' +
+			'WHERE t.archetype = \'private_message\' ' +
+			'AND p.id > $1::int ' +
+			'AND p.created_at > $2::timestamp ' +
+			("message_where" in _config ? 'AND (' + _config["message_where"] + ') ' : '') +
+			'ORDER BY p.id ASC';
+	}
+
+	Exporter.getPaginatedMessages = function(start, limit, callback) {
+		pg.connect(_url, function(err, client, done) {
+			if (err) {
+				return callback(err);
+			}
+
+			client.query({
+				text: discourseMessagesQuery() + ' LIMIT $3::int OFFSET $4::int',
+				types: ["int", "timestamp", "int", "int"]
+			}, [_config["message_id_greater"] || -1, _config["message_created_after"] || new Date(0), limit, start], function(err, result) {
+				done(err);
+
+				if (err) {
+					return callback(err);
+				}
+
+				var messages = {};
+
+				result.rows.forEach(function(row) {
+					row._timestamp = +row._timestamp;
+					messages[row._mid] = row;
+				});
+
+				callback(null, messages);
+			});
+		});
+	}
 
 	function discourseCategoriesQuery() {
 		return 'SELECT ' +
