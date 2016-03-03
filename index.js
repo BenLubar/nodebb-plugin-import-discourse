@@ -555,7 +555,7 @@ var winston = module.parent.require('winston');
 			'p.PostAuthor AS _guest, ' +
 			'CASE WHEN p.ParentID = p.PostID THEN NULL ELSE p.ParentID END AS [_toPid], ' +
 			'p.IPAddress AS _ip, ' +
-			'CASE WHEN p.Subject = pp.Subject THEN \'\' WHEN p.Subject = \'Re: \' + pp.Subject THEN \'\' ELSE \'# \' + p.Subject + \'\\n\\n\' END + CAST(p.Body AS nvarchar(max)) AS _content, ' +
+			'CASE WHEN p.Subject = pp.Subject THEN \'\' WHEN p.Subject = \'Re: \' + pp.Subject THEN \'\' ELSE \'# \' + p.Subject + CHAR(10) + CHAR(10) END + CAST(p.Body AS nvarchar(max)) AS _content, ' +
 			'p.PostDate AS _timestamp, ' +
 			'1 - p.IsApproved AS _deleted ' +
 			'FROM dbo.cs_Posts AS p ' +
