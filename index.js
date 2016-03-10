@@ -29,6 +29,9 @@ var utils = require('../../public/src/utils');
 		"bookmark_id_greater": function(x) { return parseInt(x, 10); },
 		"bookmark_created_after": function(x) { return new Date(x); },
 		"bookmark_where": function(x) { return String(x); },
+		"favourite_id_greater": function(x) { return parseInt(x, 10); },
+		"favourite_created_after": function(x) { return new Date(x); },
+		"favourite_where": function(x) { return String(x); },
 	};
 
 	Exporter.setup = function(config, callback) {
@@ -451,17 +454,13 @@ var utils = require('../../public/src/utils');
 
 			client.query({
 				text: 'SELECT ' +
-				'a.id AS _bid, ' +
-				'a.post_id AS _pid, ' +
-				'p.topic_id AS _tid, ' +
-				'a.user_id AS _uid, ' +
-				'p.post_number - 1 AS _index ' +
-				'FROM ' + _table_prefix + 'post_actions AS a ' +
-				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
-				'ON a.post_id = p.id ' +
-				'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'bookmark\') ' +
-				'AND a.id > $3::int ' +
-				'AND a.created_at > $4::timestamp ' +
+				'tu.id AS _bid, ' +
+				'tu.topic_id AS _tid, ' +
+				'tu.user_id AS _uid, ' +
+				'tu.last_read_post_number - 1 AS _index ' +
+				'FROM ' + _table_prefix + 'topic_users AS tu ' +
+				'WHERE tu.id > $3::int ' +
+				'AND tu.created_at > $4::timestamp ' +
 				("bookmark_where" in _config ? 'AND (' + _config["bookmark_where"] + ') ' : '') +
 				'ORDER BY _bid ASC ' +
 				'LIMIT $1::int ' +
@@ -481,6 +480,44 @@ var utils = require('../../public/src/utils');
 				});
 
 				callback(null, bookmarks);
+			});
+		});
+	};
+
+	Exporter.getPaginatedFavourites = function(start, limit, callback) {
+		pg.connect(_url, function(err, client, done) {
+			if (err) {
+				return callback(err);
+			}
+
+			client.query({
+				text: 'SELECT ' +
+				'a.id AS _fid, ' +
+				'a.post_id AS _pid, ' +
+				'a.user_id AS _uid, ' +
+				'FROM ' + _table_prefix + 'post_actions AS a ' +
+				'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'bookmark\') ' +
+				'AND a.id > $3::int ' +
+				'AND a.created_at > $4::timestamp ' +
+				("favourite_where" in _config ? 'AND (' + _config["favourite_where"] + ') ' : '') +
+				'ORDER BY _fid ASC ' +
+				'LIMIT $1::int ' +
+				'OFFSET $2::int',
+				types: ["int", "int", "int", "timestamp"]
+			}, [limit, start, _config["favourite_id_greater"] || -1, _config["favourite_created_after"] || new Date(0)], function(err, result) {
+				done(err);
+
+				if (err) {
+					return callback(err);
+				}
+
+				var favourites = {};
+
+				result.rows.forEach(function(row) {
+					favourites[row._fid] = row;
+				});
+
+				callback(null, favourites);
 			});
 		});
 	};
