@@ -779,8 +779,8 @@ var winston = module.parent.require('winston');
 			'LEFT OUTER JOIN ' + _table_prefix + 'post_custom_fields AS pf ' +
 			'ON pf.post_id = a.post_id AND pf.name = \'import_id\' ' +
 			'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'bookmark\') ' +
-			'AND a.id > $3::int ' +
-			'AND a.created_at > $4::timestamp ' +
+			'AND a.id > $1::int ' +
+			'AND a.created_at > $2::timestamp ' +
 			("favourite_where" in _config ? 'AND (' + _config["favourite_where"] + ') ' : '') +
 			'ORDER BY a.id ASC';
 	}
