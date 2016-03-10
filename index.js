@@ -34,7 +34,6 @@ var winston = module.parent.require('winston');
 		"vote_created_after": function(x) { return new Date(x); },
 		"vote_where": function(x) { return String(x); },
 		"bookmark_id_greater": function(x) { return parseInt(x, 10); },
-		"bookmark_created_after": function(x) { return new Date(x); },
 		"bookmark_where": function(x) { return String(x); },
 		"favourite_id_greater": function(x) { return parseInt(x, 10); },
 		"favourite_created_after": function(x) { return new Date(x); },
@@ -740,7 +739,6 @@ var winston = module.parent.require('winston');
 			'LEFT OUTER JOIN ' + _table_prefix + 'topic_custom_fields AS tf ' +
 			'ON tf.topic_id = tu.topic_id AND tf.name = \'import_id\' ' +
 			'WHERE tu.id > $1::int ' +
-			'AND tu.created_at > $2::timestamp ' +
 			("bookmark_where" in _config ? 'AND (' + _config["bookmark_where"] + ') ' : '') +
 			'ORDER BY tu.id ASC';
 	}
@@ -752,9 +750,9 @@ var winston = module.parent.require('winston');
 			}
 
 			client.query({
-				text: discourseBookmarksQuery() + ' LIMIT $3::int OFFSET $4::int',
-				types: ["int", "timestamp", "int", "int"]
-			}, [_config["bookmark_id_greater"] || -1, _config["bookmark_created_after"] || new Date(0), limit, start], function(err, result) {
+				text: discourseBookmarksQuery() + ' LIMIT $2::int OFFSET $3::int',
+				types: ["int", "int", "int"]
+			}, [_config["bookmark_id_greater"] || -1, limit, start], function(err, result) {
 				done(err);
 
 				if (err) {
