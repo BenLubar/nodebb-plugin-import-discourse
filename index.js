@@ -774,7 +774,7 @@ var winston = module.parent.require('winston');
 		return 'SELECT ' +
 			'a.id AS _fid, ' +
 			'COALESCE(pf.value::int * 2, a.post_id * 2 + 1) AS _pid, ' +
-			'a.user_id AS _uid, ' +
+			'a.user_id AS _uid ' +
 			'FROM ' + _table_prefix + 'post_actions AS a ' +
 			'LEFT OUTER JOIN ' + _table_prefix + 'post_custom_fields AS pf ' +
 			'ON pf.post_id = a.post_id AND pf.name = \'import_id\' ' +
