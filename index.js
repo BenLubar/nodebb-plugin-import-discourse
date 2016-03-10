@@ -36,6 +36,9 @@ var winston = module.parent.require('winston');
 		"bookmark_id_greater": function(x) { return parseInt(x, 10); },
 		"bookmark_created_after": function(x) { return new Date(x); },
 		"bookmark_where": function(x) { return String(x); },
+		"favourite_id_greater": function(x) { return parseInt(x, 10); },
+		"favourite_created_after": function(x) { return new Date(x); },
+		"favourite_where": function(x) { return String(x); },
 	};
 
 	Exporter.setup = function(config, callback) {
@@ -729,23 +732,17 @@ var winston = module.parent.require('winston');
 
 	function discourseBookmarksQuery() {
 		return 'SELECT ' +
-			'a.id AS _bid, ' +
-			'COALESCE(pf.value::int * 2, a.post_id * 2 + 1) AS _pid, ' +
-			'COALESCE(tf.value::int * 2, p.topic_id * 2 + 1) AS _tid, ' +
-			'a.user_id AS _uid, ' +
-			'p.post_number - 1 AS _index ' +
-			'FROM ' + _table_prefix + 'post_actions AS a ' +
-			'INNER JOIN ' + _table_prefix + 'posts AS p ' +
-			'ON a.post_id = p.id ' +
-			'LEFT OUTER JOIN ' + _table_prefix + 'post_custom_fields AS pf ' +
-			'ON pf.post_id = a.post_id AND pf.name = \'import_id\' ' +
+			'tu.id AS _bid, ' +
+			'COALESCE(tf.value::int * 2, tu.topic_id * 2 + 1) AS _tid, ' +
+			'tu.user_id AS _uid, ' +
+			'tu.last_read_post_number - 1 AS _index ' +
+			'FROM ' + _table_prefix + 'topic_users AS tu ' +
 			'LEFT OUTER JOIN ' + _table_prefix + 'topic_custom_fields AS tf ' +
-			'ON tf.topic_id = p.topic_id AND tf.name = \'import_id\' ' +
-			'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'bookmark\') ' +
-			'AND a.id > $1::int ' +
-			'AND a.created_at > $2::timestamp ' +
+			'ON tf.topic_id = tu.topic_id AND tf.name = \'import_id\' ' +
+			'WHERE tu.id > $1::int ' +
+			'AND tu.created_at > $2::timestamp ' +
 			("bookmark_where" in _config ? 'AND (' + _config["bookmark_where"] + ') ' : '') +
-			'ORDER BY a.id ASC';
+			'ORDER BY tu.id ASC';
 	}
 
 	Exporter.getPaginatedBookmarks = function(start, limit, callback) {
@@ -771,6 +768,48 @@ var winston = module.parent.require('winston');
 				});
 
 				callback(null, bookmarks);
+			});
+		});
+	};
+
+	function discourseFavouritesQuery() {
+		return 'SELECT ' +
+			'a.id AS _fid, ' +
+			'COALESCE(pf.value::int * 2, a.post_id * 2 + 1) AS _pid, ' +
+			'a.user_id AS _uid, ' +
+			'FROM ' + _table_prefix + 'post_actions AS a ' +
+			'LEFT OUTER JOIN ' + _table_prefix + 'post_custom_fields AS pf ' +
+			'ON pf.post_id = a.post_id AND pf.name = \'import_id\' ' +
+			'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'bookmark\') ' +
+			'AND a.id > $3::int ' +
+			'AND a.created_at > $4::timestamp ' +
+			("favourite_where" in _config ? 'AND (' + _config["favourite_where"] + ') ' : '') +
+			'ORDER BY a.id ASC';
+	}
+
+	Exporter.getPaginatedFavourites = function(start, limit, callback) {
+		pg.connect(_url, function(err, client, done) {
+			if (err) {
+				return callback(err);
+			}
+
+			client.query({
+				text: discourseFavouritesQuery() + ' LIMIT $3::int OFFSET $4::int',
+				types: ["int", "timestamp", "int", "int"]
+			}, [_config["favourite_id_greater"] || -1, _config["favourite_created_after"] || new Date(0), limit, start], function(err, result) {
+				done(err);
+
+				if (err) {
+					return callback(err);
+				}
+
+				var favourites = {};
+
+				result.rows.forEach(function(row) {
+					favourites[row._fid] = row;
+				});
+
+				callback(null, favourites);
 			});
 		});
 	};
