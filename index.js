@@ -492,7 +492,7 @@ var utils = require('../../public/src/utils');
 				text: 'SELECT ' +
 				'a.id AS _fid, ' +
 				'a.post_id AS _pid, ' +
-				'a.user_id AS _uid, ' +
+				'a.user_id AS _uid ' +
 				'FROM ' + _table_prefix + 'post_actions AS a ' +
 				'WHERE a.post_action_type_id = (SELECT t.id FROM ' + _table_prefix + 'post_action_types AS t WHERE t.name_key = \'bookmark\') ' +
 				'AND a.id > $3::int ' +
