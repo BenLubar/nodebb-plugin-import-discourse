@@ -27,7 +27,6 @@ var utils = require('../../public/src/utils');
 		"vote_created_after": function(x) { return new Date(x); },
 		"vote_where": function(x) { return String(x); },
 		"bookmark_id_greater": function(x) { return parseInt(x, 10); },
-		"bookmark_created_after": function(x) { return new Date(x); },
 		"bookmark_where": function(x) { return String(x); },
 		"favourite_id_greater": function(x) { return parseInt(x, 10); },
 		"favourite_created_after": function(x) { return new Date(x); },
@@ -460,13 +459,12 @@ var utils = require('../../public/src/utils');
 				'tu.last_read_post_number - 1 AS _index ' +
 				'FROM ' + _table_prefix + 'topic_users AS tu ' +
 				'WHERE tu.id > $3::int ' +
-				'AND tu.created_at > $4::timestamp ' +
 				("bookmark_where" in _config ? 'AND (' + _config["bookmark_where"] + ') ' : '') +
 				'ORDER BY _bid ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
 				types: ["int", "int", "int", "timestamp"]
-			}, [limit, start, _config["bookmark_id_greater"] || -1, _config["bookmark_created_after"] || new Date(0)], function(err, result) {
+			}, [limit, start, _config["bookmark_id_greater"] || -1], function(err, result) {
 				done(err);
 
 				if (err) {
