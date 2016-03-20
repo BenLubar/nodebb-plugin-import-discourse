@@ -60,7 +60,7 @@
 
 					Messaging.getMessageField(mid, 'roomId', function(err, roomId) {
 						if (err || !roomId) {
-							next();
+							return next();
 						}
 
 						Messaging.isUserInRoom(req.uid, roomId, function(err, inRoom) {
