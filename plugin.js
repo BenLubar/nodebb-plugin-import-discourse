@@ -56,7 +56,7 @@
 					return next();
 				}
 
-				redirect(res, '/topic/' + encodeURI(slug) + (req.params.post_index ? '/' + req.params.post_index : ''));
+				redirect(res, '/topic/' + slug + (req.params.post_index ? '/' + req.params.post_index : ''));
 			});
 		});
 	};
@@ -101,7 +101,7 @@
 							return next();
 						}
 
-						redirect(res, '/topic/' + encodeURI(slug) + '/' + index);
+						redirect(res, '/topic/' + slug + '/' + index);
 					});
 				});
 			});
@@ -134,7 +134,7 @@
 
 			if (!cats.some(function(cat) {
 				if (cat.slug === cat.cid + '/' + slug) {
-					redirect(res, '/category/' + encodeURI(cat.slug));
+					redirect(res, '/category/' + cat.slug);
 					return true;
 				}
 				return false;
@@ -164,7 +164,7 @@
 						return next();
 					}
 
-					redirect(res, '/user/' + encodeURI(slug));
+					redirect(res, '/user/' + slug);
 				})
 			});
 		});
@@ -186,7 +186,7 @@
 						return next();
 					}
 
-					redirect(res, '/category/' + encodeURI(slug));
+					redirect(res, '/category/' + slug);
 				})
 			});
 		});
@@ -203,7 +203,7 @@
 					return next();
 				}
 
-				redirect(res, '/topic/' + encodeURI(slug) + '/' + (req.query.PageIndex * 50 - 49));
+				redirect(res, '/topic/' + slug + '/' + (req.query.PageIndex * 50 - 49));
 			});
 		});
 	};
@@ -229,7 +229,7 @@
 							return next();
 						}
 
-						redirect(res, '/topic/' + encodeURI(slug) + '/' + index);
+						redirect(res, '/topic/' + slug + '/' + index);
 					});
 				});
 			});
