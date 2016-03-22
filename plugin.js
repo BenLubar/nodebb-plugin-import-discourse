@@ -29,6 +29,8 @@
 		params.router.get('/api/t/:tid', Plugin.topicRedirect);
 		params.router.get('/t/:title/:tid/:post_index?', Plugin.topicRedirect);
 		params.router.get('/api/t/:title/:tid/:post_index?', Plugin.topicRedirect);
+		params.router.get('/t/:title?/:tid.rss', Plugin.rssRedirect);
+		params.router.get('/api/t/:title?/:tid.rss', Plugin.rssRedirect);
 		params.router.get('/p/:pid', Plugin.postRedirect);
 		params.router.get('/api/p/:pid', Plugin.postRedirect);
 		params.router.get('/user_avatar/:host/:user/:size/:name', Plugin.avatarRedirect);
@@ -67,6 +69,19 @@
 
 				redirect(req, res, '/topic/' + slug + (req.params.post_index ? '/' + req.params.post_index : ''));
 			});
+		});
+	};
+
+	Plugin.rssRedirect = function(req, res, next) {
+		if (!utils.isNumber(req.params.tid)) {
+			return next();
+		}
+		db.sortedSetScore('_imported:_topics', req.params.tid, function(err, id) {
+			if (err || !id) {
+				return next();
+			}
+
+			redirect(req, res, '/topic/' + id + '.rss');
 		});
 	};
 
