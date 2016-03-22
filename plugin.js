@@ -5,7 +5,24 @@
 	    User = module.parent.require('./user'),
 	    Categories = module.parent.require('./categories'),
 	    Messaging = module.parent.require('./messaging'),
-	    redirect = module.parent.require('./controllers/helpers').redirect;
+	    nconf = module.parent.require('nconf'),
+	    utils = module.parent.require('../public/src/utils.js');
+
+	// change: also take the request as a parameter
+	function redirect(req, res, url) {
+		// change: keep the query string intact
+		var query = req.url.indexOf('?');
+		if (query !== -1) {
+			url += req.url.substr(query);
+		}
+
+		if (res.locals.isAPI) {
+			res.status(308).json(url);
+		} else {
+			// change: do a permanent redirect instead of a "found"
+			res.redirect(301, nconf.get('relative_path') + encodeURI(url));
+		}
+	}
 
 	Plugin.load = function(params, callback) {
 		params.router.get('/t/:tid', Plugin.topicRedirect);
@@ -23,6 +40,9 @@
 	};
 
 	Plugin.topicRedirect = function(req, res, next) {
+		if (!utils.isNumber(req.params.tid)) {
+			return next();
+		}
 		db.sortedSetScore('_imported:_topics', req.params.tid, function(err, id) {
 			if (err || !id) {
 				db.sortedSetScore('_imported:_rooms', req.params.tid, function(err, roomId) {
@@ -35,7 +55,7 @@
 							return next();
 						}
 
-						redirect(res, '/chats/' + roomId);
+						redirect(req, res, '/chats/' + roomId);
 					});
 				});
 			}
@@ -45,12 +65,15 @@
 					return next();
 				}
 
-				redirect(res, '/topic/' + slug + (req.params.post_index ? '/' + req.params.post_index : ''));
+				redirect(req, res, '/topic/' + slug + (req.params.post_index ? '/' + req.params.post_index : ''));
 			});
 		});
 	};
 
 	Plugin.postRedirect = function(req, res, next) {
+		if (!utils.isNumber(req.params.pid)) {
+			return next();
+		}
 		db.sortedSetScore('_imported:_posts', req.params.pid, function(err, id) {
 			if (err || !id) {
 				db.sortedSetScore('_imported:_messages', req.params.pid, function(err, mid) {
@@ -68,7 +91,7 @@
 								return next();
 							}
 
-							redirect(res, '/chats/' + roomId);
+							redirect(req, res, '/chats/' + roomId);
 						});
 					});
 				});
@@ -90,7 +113,7 @@
 							return next();
 						}
 
-						redirect(res, '/topic/' + slug + '/' + index);
+						redirect(req, res, '/topic/' + slug + '/' + index);
 					});
 				});
 			});
@@ -108,7 +131,7 @@
 					return next();
 				}
 
-				redirect(res, url);
+				redirect(req, res, url);
 			});
 		});
 	};
@@ -123,7 +146,7 @@
 
 			if (!cats.some(function(cat) {
 				if (cat.slug === cat.cid + '/' + slug) {
-					redirect(res, '/category/' + cat.slug);
+					redirect(req, res, '/category/' + cat.slug);
 					return true;
 				}
 				return false;
