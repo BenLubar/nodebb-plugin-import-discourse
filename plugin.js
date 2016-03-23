@@ -58,7 +58,7 @@
 		}
 		db.sortedSetScore('_imported:_topics', req.params.tid * 2 + 1, function(err, id) {
 			if (err || !id) {
-				db.sortedSetScore('_imported:_rooms', req.params.tid, function(err, roomId) {
+				return db.sortedSetScore('_imported:_rooms', req.params.tid, function(err, roomId) {
 					if (err || !roomId) {
 						return next();
 					}
