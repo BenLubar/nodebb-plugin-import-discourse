@@ -255,7 +255,7 @@
 		}
 		db.sortedSetScore('_imported:_posts', req.params.pid * 2, function(err, id) {
 			if (err || !id) {
-				return next();
+				return Plugin.telligentTopicRedirect(req, res, next);
 			}
 
 			Posts.getPostFields(id, 'tid', function(err, tid) {
