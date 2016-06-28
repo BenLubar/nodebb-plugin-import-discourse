@@ -102,7 +102,7 @@
 		}
 		db.sortedSetScore('_imported:_posts', req.params.pid * 2 + 1, function(err, id) {
 			if (err || !id) {
-				db.sortedSetScore('_imported:_messages', req.params.pid, function(err, mid) {
+				return db.sortedSetScore('_imported:_messages', req.params.pid, function(err, mid) {
 					if (err || !mid) {
 						return next();
 					}
@@ -123,25 +123,12 @@
 				});
 			}
 
-			Posts.getPostFields(id, 'tid', function(err, tid) {
-				if (err || !tid) {
+			Posts.generatePostPath(id, req.uid, function(err, path) {
+				if (err || !path) {
 					return next();
 				}
 
-				Posts.getPidIndex(id, tid, null, function(err, index) {
-					if (err || !index) {
-						return next();
-					}
-
-
-					Topics.getTopicField(tid, 'slug', function(err, slug) {
-						if (err || !slug) {
-							return next();
-						}
-
-						redirect(req, res, '/topic/' + slug + '/' + index);
-					});
-				});
+				redirect(req, res, path);
 			});
 		});
 	};
@@ -258,24 +245,12 @@
 				return Plugin.telligentTopicRedirect(req, res, next);
 			}
 
-			Posts.getPostFields(id, 'tid', function(err, tid) {
-				if (err || !tid) {
+			Posts.generatePostPath(id, req.uid, function(err, path) {
+				if (err || !path) {
 					return next();
 				}
 
-				Posts.getPidIndex(id, tid, null, function(err, index) {
-					if (err || !index) {
-						return next();
-					}
-
-					Topics.getTopicField(tid, 'slug', function(err, slug) {
-						if (err || !slug) {
-							return next();
-						}
-
-						redirect(req, res, '/topic/' + slug + '/' + index);
-					});
-				});
+				redirect(req, res, path);
 			});
 		});
 	};
