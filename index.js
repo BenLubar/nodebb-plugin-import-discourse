@@ -91,6 +91,7 @@ var utils = nbbRequire('public/src/utils');
 					row._timestamp = +row._timestamp;
 					if (/^trust_level_/.test(row._name)) {
 						row._hidden = 1;
+						row._userTitleEnabled = 0;
 					}
 					groups[row._gid] = row;
 				});
