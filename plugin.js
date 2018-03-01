@@ -1,12 +1,14 @@
 (function(Plugin) {
-	var db = module.parent.require('./database'),
-		Posts = module.parent.require('./posts'),
-		Topics = module.parent.require('./topics'),
-		User = module.parent.require('./user'),
-		Categories = module.parent.require('./categories'),
-		Messaging = module.parent.require('./messaging'),
-		nconf = module.parent.require('nconf'),
-		utils = module.parent.require('../public/src/utils.js');
+	var nbbRequire = require('nodebb-plugin-require');
+
+	var db = nbbRequire('src/database'),
+		Posts = nbbRequire('src/posts'),
+		Topics = nbbRequire('src/topics'),
+		User = nbbRequire('src/user'),
+		Categories = nbbRequire('src/categories'),
+		Messaging = nbbRequire('src/messaging'),
+		nconf = nbbRequire('nconf'),
+		utils = nbbRequire('public/src/utils');
 
 	// change: also take the request as a parameter
 	function redirect(req, res, url) {
