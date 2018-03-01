@@ -50,10 +50,10 @@ async.series([
 			dbhost: 'localhost',
 			dbport: 5432,
 			dbname: 'discourse',
-			dbuser: 'postgres',
-			dbpass: '',
+			dbuser: 'username',
+			dbpass: 'password',
 
-			tablePrefix: 'restore.',
+			// tablePrefix: 'restore.',
 		}, next);
 	},
 	function(next) {
@@ -64,6 +64,12 @@ async.series([
 	},
 	function(next) {
 		getAll('Categories', next);
+	},
+	function(next) {
+		getAll('Rooms', next);
+	},
+	function(next) {
+		getAll('Messages', next);
 	},
 	function(next) {
 		getAll('Topics', next);
