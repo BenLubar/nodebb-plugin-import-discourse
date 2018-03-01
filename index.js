@@ -89,7 +89,7 @@ var utils = nbbRequire('public/src/utils');
 
 				result.rows.forEach(function(row) {
 					row._timestamp = +row._timestamp;
-					if (/^trust_level_/.test(row.name)) {
+					if (/^trust_level_/.test(row._name)) {
 						row._hidden = 1;
 					}
 					groups[row._gid] = row;
