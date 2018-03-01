@@ -49,7 +49,7 @@ async.series([
 		Exporter.setup({
 			dbhost: 'localhost',
 			dbport: 5432,
-			dbname: 'database_name',
+			dbname: 'discourse',
 			dbuser: 'username',
 			dbpass: 'password',
 

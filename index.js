@@ -113,7 +113,7 @@ var utils = nbbRequire('public/src/utils');
 				'u.username AS _username, ' +
 				'u.created_at AS _joindate, ' +
 				'u.name AS _fullname, ' +
-				'(t.suspended_at IS NOT NULL)::int AS _banned ' +
+				'(u.suspended_at IS NOT NULL)::int AS _banned, ' +
 				'p.website AS _website, ' +
 				'p.location AS _location, ' +
 				'u.views AS _profileviews, ' +
