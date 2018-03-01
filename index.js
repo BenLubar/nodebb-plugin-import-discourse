@@ -1,11 +1,13 @@
-var async = require('async');
+
 var pg = require('pg');
-var utils = require('../../public/src/utils');
+var nbbRequire = require('nodebb-plugin-require');
+var utils = nbbRequire('public/src/utils');
 
 (function(Exporter) {
 	var _table_prefix;
 	var _url;
 	var _config;
+	var EMAIL_REGEXP = /\S+@\S+\.\S+/;
 
 	var allowed_keys = {
 		"user_id_greater": function(x) { return parseInt(x, 10); },
@@ -30,28 +32,28 @@ var utils = require('../../public/src/utils');
 		"bookmark_where": function(x) { return String(x); },
 		"favourite_id_greater": function(x) { return parseInt(x, 10); },
 		"favourite_created_after": function(x) { return new Date(x); },
-		"favourite_where": function(x) { return String(x); },
+		"favourite_where": function(x) { return String(x); }
 	};
 
 	Exporter.setup = function(config, callback) {
-		_table_prefix = config.tablePrefix;
+		_table_prefix = config.tablePrefix || '';
 		_url = "postgres://" + encodeURIComponent(config.dbuser) + ":" + encodeURIComponent(config.dbpass) + "@" + encodeURIComponent(config.dbhost) + ":" + config.dbport + "/" + encodeURIComponent(config.dbname);
 
 		_config = {};
-		if (!Object.keys(config.custom).every(function(key) {
+		if (!Object.keys(config.custom || {}).every(function(key) {
 			if (key in allowed_keys) {
 				try {
 					_config[key] = allowed_keys[key](config.custom[key]);
-					if (_config[key] != _config[key]) {
-						throw "not a number";
+					if (_config[key] !== _config[key]) {
+                        callback(new Error("not a number"));
 					}
 					return true;
 				} catch (e) {
-					callback("Error in key " + key + ": " + e);
+					callback(e);
 					return false;
 				}
 			}
-			callback("Illegal custom key: " + key);
+			callback(new Error("Illegal custom key: " + key));
 			return false;
 		})) {
 			return;
@@ -72,7 +74,6 @@ var utils = require('../../public/src/utils');
 				'g.name AS _name, ' +
 				'g.created_at AS _timestamp ' +
 				'FROM ' + _table_prefix + 'groups AS g ' +
-				'WHERE g.id >= 10 ' +
 				'ORDER BY _gid ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
@@ -88,6 +89,9 @@ var utils = require('../../public/src/utils');
 
 				result.rows.forEach(function(row) {
 					row._timestamp = +row._timestamp;
+					if (/^trust_level_/.test(row.name)) {
+						row._hidden = 1;
+					}
 					groups[row._gid] = row;
 				});
 
@@ -105,12 +109,12 @@ var utils = require('../../public/src/utils');
 			client.query({
 				text: 'SELECT ' +
 				'u.id AS _uid, ' +
-				'u.email AS _email, ' +
+				'e.email AS _email, ' +
 				'u.username AS _username, ' +
 				'u.created_at AS _joindate, ' +
 				'u.name AS _fullname, ' +
-				'u.blocked::int AS _banned, ' +
-				'p.website AS _website, ' +
+                '(t.suspended_at IS NOT NULL)::int AS _banned ' +
+                'p.website AS _website, ' +
 				'p.location AS _location, ' +
 				'u.views AS _profileviews, ' +
 				'CASE ' +
@@ -118,7 +122,7 @@ var utils = require('../../public/src/utils');
 					'WHEN u.moderator THEN \'moderator\' ' +
 					'ELSE \'\' ' +
 				'END AS _level, ' +
-				'ARRAY(SELECT g.group_id FROM ' + _table_prefix + 'group_users AS g WHERE g.user_id = u.id AND g.group_id >= 10 ORDER BY g.group_id ASC) AS _groups, ' +
+				'ARRAY(SELECT g.group_id FROM ' + _table_prefix + 'group_users AS g WHERE g.user_id = u.id ORDER BY g.group_id ASC) AS _groups, ' +
 				'\'/users/\' || u.username_lower AS _path, ' +
 				'u.last_posted_at AS _lastposttime, ' +
 				'u.last_seen_at AS _lastonline, ' +
@@ -126,6 +130,8 @@ var utils = require('../../public/src/utils');
 				'FROM ' + _table_prefix + 'users AS u ' +
 				'LEFT JOIN ' + _table_prefix + 'user_profiles AS p ' +
 				'ON u.id = p.user_id ' +
+                'LEFT JOIN ' + _table_prefix + 'user_emails AS e ' +
+                'ON (u.id = e.user_id AND e.primary = true) ' +
 				'LEFT JOIN ' + _table_prefix + 'user_stats AS s ' +
 				'ON u.id = s.user_id ' +
 				'LEFT JOIN ' + _table_prefix + 'uploads AS f ' +
@@ -137,7 +143,7 @@ var utils = require('../../public/src/utils');
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
 				types: ["int", "int", "int", "timestamp"]
-			}, [limit, start, _config["user_id_greater"] || -1, _config["user_created_after"] || new Date(0)], function(err, result) {
+			}, [limit, start, _config["user_id_greater"] || -3, _config["user_created_after"] || new Date(0)], function(err, result) {
 				done(err);
 
 				if (err) {
@@ -147,6 +153,9 @@ var utils = require('../../public/src/utils');
 				var users = {};
 
 				result.rows.forEach(function(row) {
+					if (!EMAIL_REGEXP.test(row._email)) {
+                        row._email = 'INVALID.EMAIL.' + (+new Date) + '+_email_' + row._email + '_uid_' + row._uid + '@INVALID.EMAIL';
+					}
 					row._joindate = +row._joindate;
 					row._lastposttime = +row._lastposttime;
 					row._lastonline = +row._lastonline;
@@ -247,7 +256,7 @@ var utils = require('../../public/src/utils');
 				callback(null, messages);
 			});
 		});
-	}
+	};
 
 	Exporter.getPaginatedCategories = function(start, limit, callback) {
 		pg.connect(_url, function(err, client, done) {
@@ -310,7 +319,8 @@ var utils = require('../../public/src/utils');
 				't.views AS _viewcount, ' +
 				't.closed::int AS _locked, ' +
 				'p.updated_at AS _edited, ' +
-				'CASE WHEN p.deleted_at IS NULL THEN 0 ELSE 1 END AS _deleted, ' +
+                'ARRAY(SELECT tgs.name FROM ' + _table_prefix + 'topic_tags as tt INNER JOIN ' + _table_prefix + 'tags as tgs ON tt.tag_id = tgs.id WHERE tt.topic_id = t.id) AS _tags, ' +
+                'CASE WHEN p.deleted_at IS NULL THEN 0 ELSE 1 END AS _deleted, ' +
 				'(t.pinned_at IS NOT NULL)::int AS _pinned ' +
 				'FROM ' + _table_prefix + 'topics AS t ' +
 				'INNER JOIN ' + _table_prefix + 'posts AS p ' +
@@ -463,7 +473,7 @@ var utils = require('../../public/src/utils');
 				'ORDER BY _bid ASC ' +
 				'LIMIT $1::int ' +
 				'OFFSET $2::int',
-				types: ["int", "int", "int", "timestamp"]
+				types: ["int", "int", "int"]
 			}, [limit, start, _config["bookmark_id_greater"] || -1], function(err, result) {
 				done(err);
 
