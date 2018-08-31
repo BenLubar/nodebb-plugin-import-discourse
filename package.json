@@ -21,7 +21,7 @@
   "dependencies": {
     "async": "^2.0.0",
     "nodebb-plugin-require": "^0.0.7",
-    "pg": "^4.4.6"
+    "pg": "^7.0.0"
   },
   "devDependencies": {
     "fs-extra": "7.0.0"
