@@ -24,7 +24,7 @@
     "pg": "^7.0.0"
   },
   "devDependencies": {
-    "fs-extra": "7.0.0"
+    "fs-extra": "7.0.1"
   },
   "nbbpm": {
     "compatibility": "^1.0.0"
